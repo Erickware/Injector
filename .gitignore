@@ -27,6 +27,7 @@
 *.o
 *.exe
 *.dll
+!/tests/injtest.dll
 *.lib
 *.exp
 *.res
@@ -44,11 +45,6 @@
 imgui.ini
 *.log
 *.dmp
-/test/crash_dbg.txt
-/test/row_dbg.txt
-/test/io_*.txt
-/test/shot_*.png
-/test/probe_*.png
 
 # Local environment and credentials
 .env

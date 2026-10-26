@@ -64,9 +64,9 @@ const unsigned int selected_pid = ui::vars.target_pid;
 
 ## Test tools
 
-`test/injtest.c` is a test DLL that displays an `INJTEST-MARKER` window when executed.
-It is not linked into the application and does not populate its process list or logs.
-PowerShell test scripts resolve paths relative to their own directory.
+`tests/injtest.dll` is the compiled x64 test DLL. When loaded, it displays an
+`INJTEST-MARKER` window. It is provided for local validation and is not required
+to build or run Injector.
 
 Scripted UI input and frame capture are excluded from normal builds. To build a dedicated
 test executable with these tools enabled, pass `/p:EnableTestHarness=true` to MSBuild,
