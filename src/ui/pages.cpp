@@ -330,7 +330,7 @@ namespace ui::pages
             const ImVec2 at = section_pos( );
             draw_icon_glyph( draw, at + ImVec2{ 0.f, 2.f }, theme::icon_blue( ), icons::syringe_3_glyph );
             draw_text( draw, fonts::manrope_extralight_500_18, at + ImVec2{ 32.f, 0.f }, theme::text, "Injector" );
-            draw_text( draw, fonts::manrope_extralight_400_12, at + ImVec2{ 0.f, 28.f }, theme::text_5, "Attach to a process and inject your DLL." );
+            draw_text( draw, fonts::manrope_extralight_400_12, at + ImVec2{ 0.f, 28.f }, theme::text_5, "Anexe-se a um processo e injete sua DLL." );
         }
         end_child( );
 
@@ -628,7 +628,7 @@ namespace ui::pages
             const ImVec2 at = section_pos( );
             draw_icon_glyph( draw, at + ImVec2{ 0.f, 2.f }, theme::icon_blue( ), icons::settings_2_glyph );
             draw_text( draw, fonts::manrope_extralight_500_18, at + ImVec2{ 32.f, 0.f }, theme::text, "Settings" );
-            draw_text( draw, fonts::manrope_extralight_400_12, at + ImVec2{ 0.f, 28.f }, theme::text_5, "Configure injection behavior and appearance." );
+            draw_text( draw, fonts::manrope_extralight_400_12, at + ImVec2{ 0.f, 28.f }, theme::text_5, "Configure o comportamento e a aparência da injeção." );
         }
         end_child( );
 
@@ -719,7 +719,7 @@ namespace ui::pages
             const ImVec2 at = section_pos( );
             draw_icon_glyph( draw, at + ImVec2{ 0.f, 2.f }, theme::icon_blue( ), icons::info_2_glyph );
             draw_text( draw, fonts::manrope_extralight_500_18, at + ImVec2{ 32.f, 0.f }, theme::text, "About" );
-            draw_text( draw, fonts::manrope_extralight_400_12, at + ImVec2{ 0.f, 28.f }, theme::text_5, "Project details, credits, and links." );
+            draw_text( draw, fonts::manrope_extralight_400_12, at + ImVec2{ 0.f, 28.f }, theme::text_5, "Detalhes do projeto, créditos e links." );
         }
         end_child( );
 
