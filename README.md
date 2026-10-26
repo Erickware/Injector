@@ -3,8 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Uma interface nativa para trabalhar com DLLs e processos Windows.</strong><br />
-  Lista de processos, configurações visuais e logs detalhados.
+  Injetor de DLLs para Windows x64, escrito em C++20 com Dear ImGui e DirectX 11.
 </p>
 
 <p align="center">
@@ -29,66 +28,58 @@
 
 <a id="recursos"></a>
 
-## ✨ O que você encontra
+## Recursos
 
-O **Injector** é um aplicativo desktop para carregar DLLs em processos **x64**, com interface em Dear ImGui e renderização em DirectX 11. A navegação reúne três páginas: **Injector**, **Settings** e **About**.
-
-| Recurso | Como funciona |
-| :--- | :--- |
-| **Processos em tempo real** | Lista obtida do Windows, com nome, PID, arquitetura, pesquisa e atualização manual. |
-| **Três métodos disponíveis** | LoadLibrary, Manual Map e Thread Hijack, selecionados nas configurações. |
-| **Log de operações** | Mensagens com horário e cores por severidade, quebra de linha e histórico com rolagem. |
-| **Ajustes de execução** | Delay configurável, nova tentativa automática em caso de falha e modo de log detalhado. |
-| **Aparência personalizável** | Opacidade da janela, cores de destaque, animações e redução de movimento. |
-| **Notificações e arquivo de log** | Alertas de sucesso e erro, efeitos sonoros opcionais e retenção configurável dos logs. |
+- LoadLibrary, Manual Map e Thread Hijack.
+- Lista de processos com nome, PID, arquitetura, pesquisa e atualização manual.
+- Logs com horário, cores por severidade, quebra de linha e rolagem.
+- Delay e nova tentativa automática configuráveis.
+- Opacidade, cores e animações ajustáveis.
+- Notificações, sons opcionais e gravação de logs em arquivo.
 
 <a id="interface"></a>
 
-## 🖥️ Interface
+## Interface
 
 <p align="center">
   <img src="preview.png" alt="Tela About do Injector, com informações do projeto, tecnologias e contato" width="900" />
 </p>
 
-<p align="center"><sub>Tema escuro, destaque em azul e painéis organizados por função.</sub></p>
-
 <a id="tecnologias"></a>
 
-## 🧩 Por dentro da stack
+## Tecnologias
 
-| Tecnologia | Papel no projeto |
+| Tecnologia | Uso |
 | :--- | :--- |
-| **C++20** | Código da aplicação, gerenciamento de estado e integração nativa. |
-| **Dear ImGui 1.92.7** | Interface, campos de edição e controles de interação. |
-| **DirectX 11 / DXGI** | Renderização da interface e apresentação dos frames. |
-| **Win32 API** | Janela, diálogos de arquivos e informações dos processos. |
-| **DWM / Windows Imaging Component** | Composição visual da janela e suporte às imagens. |
-| **Visual Studio / MSVC** | Solução nativa para desenvolver e compilar no Windows. |
-| **CMake** | Configuração alternativa de compilação. |
+| **C++20** | Linguagem. |
+| **Dear ImGui 1.92.7** | Interface. |
+| **DirectX 11 / DXGI** | Renderização. |
+| **Win32 API** | Janela, diálogos e consulta de processos. |
+| **DWM / Windows Imaging Component** | Composição da janela e imagens. |
+| **Visual Studio / MSVC** | IDE e compilador. |
+| **CMake** | Configuração da compilação. |
 
-As dependências do Dear ImGui já estão em [`vendor/imgui`](vendor/imgui). As fontes, os ícones e as imagens utilizados pela interface ficam em [`assets`](assets), com versões embutidas no código.
+Dear ImGui está incluído em [`vendor/imgui`](vendor/imgui). Fontes, ícones e imagens ficam em [`assets`](assets) e são embutidos no executável.
 
 <a id="compilar"></a>
 
-## ⚙️ Do código à janela
+## Compilação
 
 ### Requisitos
 
 - **Windows 10 ou 11**.
 - **Visual Studio 2022 ou mais recente**, com a carga de trabalho **Desenvolvimento para desktop com C++** e o Windows SDK.
-- **CMake 3.20+**, caso escolha compilar por CMake.
+- **CMake 3.20+** para compilar pelo CMake.
 
-### 1. Clone o repositório
+### Clonar
 
 ```bash
 git clone https://github.com/er1ck-xyz/Injector.git
 cd Injector
 ```
 
-### 2. Escolha como compilar
-
 <details open>
-<summary><strong>Visual Studio Community</strong> · solução pronta para abrir</summary>
+<summary><strong>Visual Studio Community</strong></summary>
 
 1. Abra [`Injector.sln`](Injector.sln).
 2. Selecione **Release** e **x64** na barra de ferramentas.
@@ -102,35 +93,35 @@ build/Release/Injector.exe
 </details>
 
 <details>
-<summary><strong>CMake</strong> · compilação pelo terminal</summary>
+<summary><strong>CMake</strong></summary>
 
-Na pasta do projeto, execute:
+Na pasta do projeto:
 
 ```powershell
 cmake -S . -B build/cmake -G "Visual Studio 17 2022" -A x64
 cmake --build build/cmake --config Release
 ```
 
-O executável será gerado em:
+Executável:
 
 ```text
 build/cmake/Release/Injector.exe
 ```
 
-Os comandos acima usam o gerador do Visual Studio 2022. Para outra versão instalada, escolha o gerador correspondente.
+Para outra versão do Visual Studio, ajuste o gerador em `-G`.
 
 </details>
 
-### 3. Explore o aplicativo
+## Uso
 
-1. Em **Injector**, use **Search Process** para localizar e selecionar um processo x64.
-2. Clique em **Browse** e escolha a DLL x64.
-3. Em **Settings**, configure método, delay, notificações e aparência.
-4. Volte à página **Injector**. O painel **Injection Log** mostra os resultados das operações.
+1. Selecione um processo x64 na lista.
+2. Clique em **Browse** e selecione uma DLL x64.
+3. Configure o método e o delay em **Settings**.
+4. Clique em **Inject** e acompanhe o resultado em **Injection Log**.
 
 <a id="estrutura"></a>
 
-## 🗂️ Um mapa do projeto
+## Estrutura
 
 ```text
 Injector/
@@ -150,7 +141,7 @@ Injector/
 ```
 
 <details>
-<summary><strong>Quer personalizar a interface?</strong></summary>
+<summary><strong>Personalização</strong></summary>
 
 | Arquivo | O que editar |
 | :--- | :--- |
@@ -172,14 +163,14 @@ ui::vars.injection_delay = 150.f;
 
 <a id="testes"></a>
 
-## 🧪 DLL de teste
+## DLL de teste
 
-A [`tests/injtest.dll`](tests/injtest.dll) é uma DLL **x64** de validação. Quando executada, ela exibe a janela **`INJTEST-MARKER`**. O arquivo é independente do aplicativo e não é necessário para compilar o projeto.
+[`tests/injtest.dll`](tests/injtest.dll) é uma DLL x64 que exibe a janela `INJTEST-MARKER` quando executada. Não é necessária para compilar o projeto.
 
 <details>
-<summary><strong>Ferramentas opcionais de desenvolvimento</strong></summary>
+<summary><strong>Ferramentas de teste</strong></summary>
 
-A captura de frames e a entrada de interface por script ficam desativadas nas compilações normais. Para habilitá-las em uma compilação de teste:
+Captura de frames e entrada por script são desativadas por padrão. Para habilitar:
 
 **MSBuild** — execute no Developer PowerShell do Visual Studio:
 
@@ -200,9 +191,11 @@ Essas compilações aceitam `INJECTOR_CAPTURE` e `INJECTOR_CAPTURE_SCRIPT`.
 
 <a id="contato"></a>
 
-## 💬 Contato e feedback
+## Contato
 
-Encontrou um problema? Abra uma [issue](https://github.com/er1ck-xyz/Injector/issues) com os passos para reproduzir, a mensagem do log e, quando possível, uma captura da interface.
+[Issues](https://github.com/er1ck-xyz/Injector/issues) · Discord: **`.0x764`**
+
+Ao reportar um erro, inclua os passos para reproduzir e a mensagem do log.
 
 <p align="center">
   <a href="https://github.com/er1ck-xyz/Injector"><img src="https://img.shields.io/badge/GitHub-er1ck--xyz-1E75FC?style=for-the-badge&amp;logo=github&amp;logoColor=white&amp;labelColor=111827" alt="GitHub de er1ck-xyz" /></a>
