@@ -1,10 +1,10 @@
-#include "lazyui/lazyui.hpp"
+#include "injector/injector.hpp"
 
 #include "ui.hpp"
 #include "pages.hpp"
 #include "assets.hpp"
 #include "theme.hpp"
-#include "lazyui/runtime.hpp"
+#include "injector/runtime.hpp"
 
 #include <array>
 #include <cstddef>
@@ -14,7 +14,7 @@ namespace ui
 {
     namespace
     {
-        using namespace lazyui;
+        using namespace ::injector;
 
         selection_state< 3 > nav_main{ 0, 0.f, 164.f };
         const ImVec4 nav_main_slots[3] = {
@@ -46,14 +46,14 @@ namespace ui
         {
             for ( std::size_t index = 0; index < images.size( ); ++index )
                 if ( !images[index].ready( ) )
-                    ( void )images[index].load( lazyui::app.device, image_sources[index].data, image_sources[index].size );
+                    ( void )images[index].load( injector::app.device, image_sources[index].data, image_sources[index].size );
         }
 
         bool ensure_framework_blur( )
         {
             if ( framework_blur_effect.ready( ) && framework_blur_effect.matches_display( ImGui::GetIO( ).DisplaySize ) )
                 return true;
-            return framework_blur_effect.setup( lazyui::app.device, lazyui::app.device_context, lazyui::app.swap_chain );
+            return framework_blur_effect.setup( injector::app.device, injector::app.device_context, injector::app.swap_chain );
         }
 
         void update_controls( ImVec2 origin )
@@ -108,7 +108,7 @@ namespace ui
     {
         load_images( );
         pages::tick( );
-        set_graphics( lazyui::app.device, lazyui::app.swap_chain );
+        set_graphics( injector::app.device, injector::app.swap_chain );
 
         // Settings > Appearance applies at frame scope so every page and widget
         // drawn below already sees the live values:
@@ -122,14 +122,14 @@ namespace ui
             static int applied_alpha = -1;
             if ( !layered )
             {
-                const LONG_PTR ex = GetWindowLongPtrW( lazyui::app.window, GWL_EXSTYLE );
-                SetWindowLongPtrW( lazyui::app.window, GWL_EXSTYLE, ex | WS_EX_LAYERED );
+                const LONG_PTR ex = GetWindowLongPtrW( injector::app.window, GWL_EXSTYLE );
+                SetWindowLongPtrW( injector::app.window, GWL_EXSTYLE, ex | WS_EX_LAYERED );
                 layered = true;
             }
             const int wanted = ImClamp( static_cast< int >( vars.window_opacity * 255.f / 100.f + 0.5f ), 30, 255 );
             if ( wanted != applied_alpha )
             {
-                SetLayeredWindowAttributes( lazyui::app.window, 0, static_cast< BYTE >( wanted ), LWA_ALPHA );
+                SetLayeredWindowAttributes( injector::app.window, 0, static_cast< BYTE >( wanted ), LWA_ALPHA );
                 applied_alpha = wanted;
             }
         }
@@ -174,7 +174,7 @@ namespace ui
     }
 }
 
-bool lazyui::image_texture( std::size_t index, texture_handle& texture )
+bool injector::image_texture( std::size_t index, texture_handle& texture )
 {
     if ( index >= ui::images.size( ) || !ui::images[index].ready( ) )
         return false;
@@ -182,22 +182,22 @@ bool lazyui::image_texture( std::size_t index, texture_handle& texture )
     return true;
 }
 
-void lazyui::framework_blur( ImDrawList* draw, ImVec2 min, ImVec2 max, const corner_radii& radii )
+void injector::framework_blur( ImDrawList* draw, ImVec2 min, ImVec2 max, const corner_radii& radii )
 {
     if ( ui::ensure_framework_blur( ) )
         ui::framework_blur_effect.draw( draw, min, max, radii.top_left, radii.top_right, radii.bottom_right, radii.bottom_left );
 }
 
-void lazyui::close_window( )
+void injector::close_window( )
 {
-    ::PostMessageW( lazyui::app.window, WM_CLOSE, 0, 0 );
+    ::PostMessageW( injector::app.window, WM_CLOSE, 0, 0 );
 }
 
-void lazyui::minimize_window( )
+void injector::minimize_window( )
 {
-    ::ShowWindow( lazyui::app.window, SW_MINIMIZE );
+    ::ShowWindow( injector::app.window, SW_MINIMIZE );
 }
 
-void lazyui::resize_window( ImVec2 )
+void injector::resize_window( ImVec2 )
 {
 }

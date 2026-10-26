@@ -33,11 +33,11 @@ function Get-MainWindow( [string]$title )
     [void][TU]::EnumWindows( $cb, [IntPtr]::Zero )
     return $script:hit
 }
-Get-Process LazyUI -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process Injector -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 600
-Start-Process "$PSScriptRoot\..\build\Release\LazyUI.exe"
+Start-Process "$PSScriptRoot\..\build\Release\Injector.exe"
 Start-Sleep -Milliseconds 2200
-$hw = Get-MainWindow "LazyUI Loader"
+$hw = Get-MainWindow "Injector"
 $r = New-Object WRECT; [void][TU]::GetWindowRect( $hw, [ref]$r )
 $ox = $r.Left; $oy = $r.Top
 "win: $($r.Right-$r.Left)x$($r.Bottom-$r.Top) at $ox,$oy"

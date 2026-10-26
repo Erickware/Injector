@@ -4,8 +4,8 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 
-#if __has_include( "lazyui_config.hpp" )
-#include "lazyui_config.hpp"
+#if __has_include( "injector_config.hpp" )
+#include "injector_config.hpp"
 #endif
 
 #include <imgui.h>
@@ -16,7 +16,7 @@
 #include <memory>
 #include <vector>
 
-namespace lazyui
+namespace injector
 {
     inline ImTextureID texture_id( const void* object ) noexcept
     {

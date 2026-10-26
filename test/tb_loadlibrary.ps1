@@ -1,12 +1,12 @@
 # tb_loadlibrary.ps1 — Phase B: real LoadLibrary E2E with foreground-forced driving.
 . "$PSScriptRoot\ta_lib.ps1"
 
-Get-Process LazyUI,notepad -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process Injector,notepad -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 700
 $np = Start-Process notepad -PassThru
 Start-Sleep -Seconds 2
 "d000 notepad pid=$($np.Id)"
-Start-Process "$PSScriptRoot\..\build\Release\LazyUI.exe"
+Start-Process "$PSScriptRoot\..\build\Release\Injector.exe"
 Start-Sleep -Milliseconds 2500
 Use-App
 

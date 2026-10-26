@@ -2,7 +2,7 @@
 
 #include "fonts.hpp"
 #include "theme.hpp"
-#include "lazyui/runtime.hpp"
+#include "injector/runtime.hpp"
 
 #include <cstdio>
 #include <string>
@@ -10,7 +10,7 @@
 
 namespace ui::widgets
 {
-    using namespace lazyui;
+    using namespace ::injector;
 
     namespace
     {

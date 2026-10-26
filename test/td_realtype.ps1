@@ -25,11 +25,11 @@ public static class TK2
 }
 "@
 
-Get-Process LazyUI -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process Injector -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 600
-$app = Start-Process "$PSScriptRoot\..\build\Release\LazyUI.exe" -PassThru
+$app = Start-Process "$PSScriptRoot\..\build\Release\Injector.exe" -PassThru
 Start-Sleep -Seconds 4
-$hwnd = Get-MainWindow "LazyUI Loader"
+$hwnd = Get-MainWindow "Injector"
 "hwnd=$hwnd"
 [void]( Use-App $hwnd | Click 300 385 )
 

@@ -1,4 +1,4 @@
-#include "lazyui.hpp"
+#include "injector.hpp"
 
 #include "backdrop.hpp"
 #include "runtime.hpp"
@@ -14,7 +14,7 @@
 #include <shellapi.h>
 #pragma comment( lib, "shell32.lib" )
 
-#ifndef LAZYUI_NO_D3D11
+#ifndef INJECTOR_NO_D3D11
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #if IMGUI_VERSION_NUM >= 19130
@@ -25,14 +25,14 @@
 
 #include "compat.hpp"
 
-namespace lazyui
+namespace injector
 {
     pointer_frame pointer;
     window_drag_state window_drag;
 
     namespace
     {
-#ifndef LAZYUI_NO_D3D11
+#ifndef INJECTOR_NO_D3D11
         ID3D11Device* graphics_device = nullptr;
         IDXGISwapChain* graphics_swap_chain = nullptr;
 
@@ -107,7 +107,7 @@ namespace lazyui
             pop_texture( draw );
         }
 
-#ifndef LAZYUI_NO_D3D11
+#ifndef INJECTOR_NO_D3D11
 
         enum fixed_blend : int { fixed_linear_dodge = 1, fixed_erase = 2, fixed_layer_dodge = 3, fixed_layer_over = 4, fixed_restore = 5 };
         ID3D11BlendState* blend_states[6]{ };
@@ -927,7 +927,7 @@ float4 main(PS_INPUT input) : SV_Target
 #endif
         }
 
-#ifdef LAZYUI_IN_APP
+#ifdef INJECTOR_IN_APP
 
         struct snapshot_resources
         {
@@ -1035,7 +1035,7 @@ float4 main(PS_INPUT input) : SV_Target
 
     void set_graphics( ID3D11Device* device, IDXGISwapChain* swap_chain )
     {
-#ifndef LAZYUI_NO_D3D11
+#ifndef INJECTOR_NO_D3D11
         graphics_device = device;
         graphics_swap_chain = swap_chain;
 #else
@@ -1169,7 +1169,7 @@ float4 main(PS_INPUT input) : SV_Target
 
     void erase_outside_corners( ImDrawList* draw, ImVec2 min, ImVec2 max, const corner_radii& radii )
     {
-#if defined( LAZYUI_NO_D3D11 )
+#if defined( INJECTOR_NO_D3D11 )
         ( void )draw;
         ( void )min;
         ( void )max;
@@ -1199,12 +1199,12 @@ float4 main(PS_INPUT input) : SV_Target
                     ImGui::ShadeVertsLinearUV( draw, first, draw->VtxBuffer.Size, ImVec2{ 0.f, 0.f }, picture, ImVec2{ 0.f, 0.f }, ImVec2{ 1.f, 1.f }, true );
             }
         };
-#if defined( LAZYUI_IN_APP )
+#if defined( INJECTOR_IN_APP )
         const bool restore = take_snapshot( draw );
 #endif
         draw->AddCallback( begin_blend_mode, reinterpret_cast< void* >( std::intptr_t{ blend_erase } ) );
         fans( ImVec2{ } );
-#if defined( LAZYUI_IN_APP )
+#if defined( INJECTOR_IN_APP )
         if ( restore )
         {
             draw->AddCallback( begin_blend_mode, reinterpret_cast< void* >( std::intptr_t{ restore_source } ) );
@@ -1223,7 +1223,7 @@ float4 main(PS_INPUT input) : SV_Target
 
     void begin_blend_mode( const ImDrawList*, const ImDrawCmd* command )
     {
-#ifdef LAZYUI_NO_D3D11
+#ifdef INJECTOR_NO_D3D11
         ( void )command;
 #else
         ImGui_ImplDX11_RenderState* state = render_state( );
@@ -1249,7 +1249,7 @@ float4 main(PS_INPUT input) : SV_Target
 
     void begin_layer( ImDrawList* draw )
     {
-#ifdef LAZYUI_NO_D3D11
+#ifdef INJECTOR_NO_D3D11
         ( void )draw;
 #else
         const int index = open_layers++;
@@ -1263,7 +1263,7 @@ float4 main(PS_INPUT input) : SV_Target
 
     void end_layer( ImDrawList* draw, blend_mode mode )
     {
-#ifdef LAZYUI_NO_D3D11
+#ifdef INJECTOR_NO_D3D11
         ( void )draw;
         ( void )mode;
 #else
@@ -1333,7 +1333,7 @@ float4 main(PS_INPUT input) : SV_Target
     {
         if ( alpha <= 0.001f || max.x <= min.x || max.y <= min.y )
             return;
-#ifdef LAZYUI_NO_D3D11
+#ifdef INJECTOR_NO_D3D11
         draw_background_blur( draw, min, max, radii, glass.frost * 0.5f, alpha );
 #else
         if ( !ensure_blur( ) || !ensure_glass( ) )
@@ -1362,7 +1362,7 @@ float4 main(PS_INPUT input) : SV_Target
     {
         if ( alpha < 0.5f || max.x <= min.x || max.y <= min.y )
             return;
-#ifdef LAZYUI_IN_APP
+#ifdef INJECTOR_IN_APP
         ( void )draw_exact_blur( draw, min, max, radii, 12.f, alpha );
 #else
         const ImVec2 clip_min = draw ? draw->GetClipRectMin( ) : min;
@@ -1375,7 +1375,7 @@ float4 main(PS_INPUT input) : SV_Target
 #endif
     }
 
-#ifndef LAZYUI_NO_D3D11
+#ifndef INJECTOR_NO_D3D11
     namespace
     {
         struct shader_call
@@ -1398,7 +1398,7 @@ float4 main(PS_INPUT input) : SV_Target
                 return false;
             ID3DBlob* bytecode = nullptr;
             ID3DBlob* errors = nullptr;
-            const HRESULT compiled = D3DCompile( background.source, std::strlen( background.source ), "lazyui_shader_background", nullptr, nullptr, "main", "ps_4_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &bytecode, &errors );
+            const HRESULT compiled = D3DCompile( background.source, std::strlen( background.source ), "injector_shader_background", nullptr, nullptr, "main", "ps_4_0", D3DCOMPILE_OPTIMIZATION_LEVEL3, 0, &bytecode, &errors );
             if ( errors )
             {
                 ::OutputDebugStringA( static_cast< const char* >( errors->GetBufferPointer( ) ) );
@@ -1446,7 +1446,7 @@ float4 main(PS_INPUT input) : SV_Target
 
     void draw_shader( ImDrawList* draw, shader_background& background, ImVec2 min, ImVec2 max, const corner_radii& radii, float alpha )
     {
-#ifdef LAZYUI_NO_D3D11
+#ifdef INJECTOR_NO_D3D11
         ( void )draw;
         ( void )background;
         ( void )min;
@@ -1697,7 +1697,7 @@ float4 main(PS_INPUT input) : SV_Target
 
     void update_window_drag( bool blocked, bool move_host, bool host_fixed )
     {
-#ifndef LAZYUI_IN_APP
+#ifndef INJECTOR_IN_APP
         move_host = !host_fixed;
 #else
         ( void )host_fixed;

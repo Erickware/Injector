@@ -7,8 +7,8 @@
 #define NOMINMAX
 #endif
 
-#if __has_include( "lazyui_config.hpp" )
-#include "lazyui_config.hpp"
+#if __has_include( "injector_config.hpp" )
+#include "injector_config.hpp"
 #endif
 
 #include <Windows.h>
@@ -16,7 +16,7 @@
 
 #include <cmath>
 
-#ifdef LAZYUI_NO_D3D11
+#ifdef INJECTOR_NO_D3D11
 struct ID3D11Device;
 struct ID3D11DeviceContext;
 struct IDXGISwapChain;

@@ -1,6 +1,6 @@
 #include "blur.hpp"
 
-#ifndef LAZYUI_NO_D3D11
+#ifndef INJECTOR_NO_D3D11
 
 #include "compat.hpp"
 
@@ -118,12 +118,12 @@ float4 main(PS_INPUT input) : SV_Target
 #if IMGUI_VERSION_NUM >= 19200
     ImTextureRef texture_ref( ID3D11ShaderResourceView* view ) noexcept
     {
-        return ImTextureRef{ lazyui::texture_id( view ) };
+        return ImTextureRef{ injector::texture_id( view ) };
     }
 #else
     ImTextureID texture_ref( ID3D11ShaderResourceView* view ) noexcept
     {
-        return lazyui::texture_id( view );
+        return injector::texture_id( view );
     }
 #endif
 
@@ -327,7 +327,7 @@ bool c_blureffect::enqueue( ImDrawList* draw, ImVec2 start, ImVec2 end_position 
     const auto add_pass = [draw, start, end_position, this]( ImDrawCallback callback, ID3D11RenderTargetView* target )
     {
         pass_data data{ this, target, start, end_position };
-        lazyui::add_callback( draw, callback, &data, sizeof( data ) );
+        injector::add_callback( draw, callback, &data, sizeof( data ) );
     };
 
     draw->PushClipRectFullScreen( );

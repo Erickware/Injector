@@ -57,7 +57,7 @@ function Get-MainWindow( [string]$title )
 
 function Use-App( )
 {
-    $script:appHwnd = Get-MainWindow "LazyUI Loader"
+    $script:appHwnd = Get-MainWindow "Injector"
     if ( $script:appHwnd -eq [IntPtr]::Zero ) { throw "app window not found" }
     $r = New-Object WRECT
     [void][TU]::GetWindowRect( $script:appHwnd, [ref]$r )

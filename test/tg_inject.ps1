@@ -1,5 +1,5 @@
 # tg_inject.ps1 — scripted end-to-end injection gauntlet runner.
-# Drives the REAL app via its own script channel (LAZYUI_CAPTURE_SCRIPT): clicks,
+# Drives the REAL app via its own script channel (INJECTOR_CAPTURE_SCRIPT): clicks,
 # text and even the OS file dialog are filled with SetDlgItemText — no luck-based
 # keyboard focus. Evidence: injector.log lines, the INJTEST-MARKER window inside
 # the target, and pixel zones in the captured frame.
@@ -17,7 +17,7 @@ $ErrorActionPreference = "Stop"
 $logPath = "$PSScriptRoot\..\build\Release\injector.log"
 
 # ---- world -----------------------------------------------------------------
-Get-Process LazyUI -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process Injector -ErrorAction SilentlyContinue | Stop-Process -Force
 Get-Process notepad -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 700
 Remove-Item $logPath -ErrorAction SilentlyContinue
@@ -53,9 +53,9 @@ $ks = [string]::Join( "; ", $steps )
 "d010 script=$ks"
 
 # ---- run ---------------------------------------------------------------------
-$env:LAZYUI_CAPTURE_SCRIPT = $ks
-$app = Start-Process "$PSScriptRoot\..\build\Release\LazyUI.exe" -PassThru
-$env:LAZYUI_CAPTURE_SCRIPT = $null
+$env:INJECTOR_CAPTURE_SCRIPT = $ks
+$app = Start-Process "$PSScriptRoot\..\build\Release\Injector.exe" -PassThru
+$env:INJECTOR_CAPTURE_SCRIPT = $null
 
 # ---- dialog companion: fills the OFN file name box when Browse opens ---------
 $appHwnd = [IntPtr]::Zero
@@ -69,7 +69,7 @@ foreach ( $try in 1..40 )
         {
             $cls = New-Object System.Text.StringBuilder 64
             [void][TU]::GetClassNameW( $h, $cls, 64 )
-            if ( $cls.ToString( ) -eq "LazyUILoader" ) { $script:aHit = $h; return $false }
+            if ( $cls.ToString( ) -eq "InjectorWindow" ) { $script:aHit = $h; return $false }
         }
         return $true
     }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lazyui/runtime.hpp"
+#include "injector/runtime.hpp"
 
 namespace ui::pages
 {

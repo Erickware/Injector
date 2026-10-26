@@ -3,7 +3,7 @@
 #include "widgets.hpp"
 #include "theme.hpp"
 
-#include "lazyui/lazyui.hpp"   // lazyui::app.window, owner of the Browse dialog
+#include "injector/injector.hpp"   // ::injector::app.window, owner of the Browse dialog
 
 #include "process.hpp"
 #include "inject.hpp"
@@ -24,7 +24,7 @@
 
 namespace ui::pages
 {
-    using namespace lazyui;
+    using namespace ::injector;
     using namespace widgets;
 
     namespace
@@ -47,7 +47,7 @@ namespace ui::pages
             wchar_t file[ MAX_PATH * 2 ] = { };
             OPENFILENAMEW ofn { };
             ofn.lStructSize = sizeof( ofn );
-            ofn.hwndOwner = lazyui::app.window;
+            ofn.hwndOwner = ::injector::app.window;
             ofn.lpstrFile = file;
             ofn.nMaxFile = IM_ARRAYSIZE( file );
             ofn.lpstrFilter = L"DLL files (*.dll)\0*.dll\0All files (*.*)\0*.*\0\0";
@@ -178,7 +178,7 @@ namespace ui::pages
             ImU32 text;
         };
 
-        // lazyui::draw_text takes the TOP of the line box, not a baseline, so every y here
+        // injector::draw_text takes the TOP of the line box, not a baseline, so every y here
         // is a box top. The font slots are 12px and 11px tall in the design.
         constexpr float chip_font_height = 11.f;
         constexpr float chip_height = 15.f;

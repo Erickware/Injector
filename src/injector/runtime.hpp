@@ -19,7 +19,7 @@ struct ID3D11Device;
 struct ID3D11PixelShader;
 struct IDXGISwapChain;
 
-namespace lazyui
+namespace injector
 {
 #if IMGUI_VERSION_NUM >= 19200
     using texture_handle = ImTextureRef;

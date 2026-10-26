@@ -1,16 +1,16 @@
 #include "image.hpp"
 
-#include "lazyui.hpp"
+#include "injector.hpp"
 
 #include <wincodec.h>
 #include <wrl/client.h>
 
 #include <imgui_internal.h>
 
-#if defined( LAZYUI_RENDERER_DX9 )
+#if defined( INJECTOR_RENDERER_DX9 )
 #include <d3d9.h>
 #endif
-#if defined( LAZYUI_RENDERER_OPENGL )
+#if defined( INJECTOR_RENDERER_OPENGL )
 #include <GL/gl.h>
 #pragma comment( lib, "opengl32.lib" )
 #endif
@@ -52,7 +52,7 @@ namespace
         return decoded;
     }
 
-#ifndef LAZYUI_NO_D3D11
+#ifndef INJECTOR_NO_D3D11
     [[nodiscard]] ID3D11ShaderResourceView* upload_dx11( ID3D11Device* device, const std::vector< std::uint8_t >& pixels, UINT width, UINT height )
     {
         D3D11_TEXTURE2D_DESC description{ };
@@ -99,7 +99,7 @@ namespace
     }
 #endif
 
-#if defined( LAZYUI_RENDERER_DX9 )
+#if defined( INJECTOR_RENDERER_DX9 )
     [[nodiscard]] IDirect3DTexture9* upload_dx9( IDirect3DDevice9* device, const std::vector< std::uint8_t >& pixels, UINT width, UINT height )
     {
         IDirect3DTexture9* texture = nullptr;
@@ -129,7 +129,7 @@ namespace
     }
 #endif
 
-#if defined( LAZYUI_RENDERER_OPENGL )
+#if defined( INJECTOR_RENDERER_OPENGL )
     [[nodiscard]] GLuint upload_opengl( const std::vector< std::uint8_t >& pixels, UINT width, UINT height )
     {
         GLint bound = 0;
@@ -165,7 +165,7 @@ bool c_image::load( ID3D11Device* device, const void* data, std::size_t size )
         return false;
 
     texture_kind target = kind_none;
-#ifndef LAZYUI_NO_D3D11
+#ifndef INJECTOR_NO_D3D11
     if ( device )
         target = kind_dx11;
 #else
@@ -175,11 +175,11 @@ bool c_image::load( ID3D11Device* device, const void* data, std::size_t size )
     if ( target == kind_none && imgui_textures( ) )
         target = kind_imgui;
 #endif
-#if defined( LAZYUI_RENDERER_DX9 )
-    if ( target == kind_none && lazyui::app.device9 )
+#if defined( INJECTOR_RENDERER_DX9 )
+    if ( target == kind_none && injector::app.device9 )
         target = kind_dx9;
 #endif
-#if defined( LAZYUI_RENDERER_OPENGL )
+#if defined( INJECTOR_RENDERER_OPENGL )
     if ( target == kind_none && ::wglGetCurrentContext( ) )
         target = kind_opengl;
 #endif
@@ -199,7 +199,7 @@ bool c_image::load( ID3D11Device* device, const void* data, std::size_t size )
     ImTextureData* texture_data = nullptr;
     switch ( target )
     {
-#ifndef LAZYUI_NO_D3D11
+#ifndef INJECTOR_NO_D3D11
     case kind_dx11:
         texture = reinterpret_cast< std::uintptr_t >( upload_dx11( device, pixels, width, height ) );
         break;
@@ -209,12 +209,12 @@ bool c_image::load( ID3D11Device* device, const void* data, std::size_t size )
         texture_data = upload_imgui( pixels, width, height );
         break;
 #endif
-#if defined( LAZYUI_RENDERER_DX9 )
+#if defined( INJECTOR_RENDERER_DX9 )
     case kind_dx9:
-        texture = reinterpret_cast< std::uintptr_t >( upload_dx9( lazyui::app.device9, pixels, width, height ) );
+        texture = reinterpret_cast< std::uintptr_t >( upload_dx9( injector::app.device9, pixels, width, height ) );
         break;
 #endif
-#if defined( LAZYUI_RENDERER_OPENGL )
+#if defined( INJECTOR_RENDERER_OPENGL )
     case kind_opengl:
         texture = static_cast< std::uintptr_t >( upload_opengl( pixels, width, height ) );
         break;
@@ -237,7 +237,7 @@ void c_image::release( ) noexcept
 {
     switch ( kind_ )
     {
-#ifndef LAZYUI_NO_D3D11
+#ifndef INJECTOR_NO_D3D11
     case kind_dx11:
         reinterpret_cast< ID3D11ShaderResourceView* >( texture_ )->Release( );
         break;
@@ -249,12 +249,12 @@ void c_image::release( ) noexcept
         IM_DELETE( data_ );
         break;
 #endif
-#if defined( LAZYUI_RENDERER_DX9 )
+#if defined( INJECTOR_RENDERER_DX9 )
     case kind_dx9:
         reinterpret_cast< IDirect3DTexture9* >( texture_ )->Release( );
         break;
 #endif
-#if defined( LAZYUI_RENDERER_OPENGL )
+#if defined( INJECTOR_RENDERER_OPENGL )
     case kind_opengl:
         if ( ::wglGetCurrentContext( ) )
         {
@@ -279,11 +279,11 @@ c_image::operator ImTextureRef( ) const noexcept
     if ( data_ )
         return data_->GetTexRef( );
 #endif
-    return ImTextureRef{ lazyui::texture_id( reinterpret_cast< const void* >( texture_ ) ) };
+    return ImTextureRef{ injector::texture_id( reinterpret_cast< const void* >( texture_ ) ) };
 }
 #else
 c_image::operator ImTextureID( ) const noexcept
 {
-    return lazyui::texture_id( reinterpret_cast< const void* >( texture_ ) );
+    return injector::texture_id( reinterpret_cast< const void* >( texture_ ) );
 }
 #endif

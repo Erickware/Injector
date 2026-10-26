@@ -6,13 +6,13 @@ $ErrorActionPreference = "Stop"
 $out = "$PSScriptRoot\probe_combo_$Y.png"
 Remove-Item $out -ErrorAction SilentlyContinue
 
-Get-Process LazyUI -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process Injector -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 500
 
 $script = "move 92 149; down; up; wait 60; move 782 $Y; down; up; wait 45; shot $out"
-$env:LAZYUI_CAPTURE_SCRIPT = $script
-Start-Process "$PSScriptRoot\..\build\Release\LazyUI.exe" -Wait
-$env:LAZYUI_CAPTURE_SCRIPT = $null
+$env:INJECTOR_CAPTURE_SCRIPT = $script
+Start-Process "$PSScriptRoot\..\build\Release\Injector.exe" -Wait
+$env:INJECTOR_CAPTURE_SCRIPT = $null
 "exit=$LASTEXITCODE"
 
 $b = New-Object System.Drawing.Bitmap( $out )

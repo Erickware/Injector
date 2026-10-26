@@ -4,7 +4,7 @@
     <Filter Include="src">
       <UniqueIdentifier>{3F1C2B8A-7D4E-4A6B-9E2C-1B5D8F0A6C31}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\lazyui">
+    <Filter Include="src\injector">
       <UniqueIdentifier>{6D0B9E44-1A2F-4C7D-8B3E-2F9A6C1D5E70}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\ui">
@@ -23,14 +23,14 @@
     </ClCompile>
     <ClCompile Include="src\process.cpp">
       <Filter>src</Filter>
-    </ClCompile>    <ClCompile Include="src\lazyui\runtime.cpp">
-      <Filter>src\lazyui</Filter>
+    </ClCompile>    <ClCompile Include="src\injector\runtime.cpp">
+      <Filter>src\injector</Filter>
     </ClCompile>
-    <ClCompile Include="src\lazyui\blur.cpp">
-      <Filter>src\lazyui</Filter>
+    <ClCompile Include="src\injector\blur.cpp">
+      <Filter>src\injector</Filter>
     </ClCompile>
-    <ClCompile Include="src\lazyui\image.cpp">
-      <Filter>src\lazyui</Filter>
+    <ClCompile Include="src\injector\image.cpp">
+      <Filter>src\injector</Filter>
     </ClCompile>
     <ClCompile Include="vendor\imgui\imgui.cpp">
       <Filter>vendor\imgui</Filter>
@@ -55,23 +55,23 @@
     <ClInclude Include="src\process.hpp">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\lazyui\lazyui.hpp">
-      <Filter>src\lazyui</Filter>
+    <ClInclude Include="src\injector\injector.hpp">
+      <Filter>src\injector</Filter>
     </ClInclude>
-    <ClInclude Include="src\lazyui\window.hpp">
-      <Filter>src\lazyui</Filter>
+    <ClInclude Include="src\injector\window.hpp">
+      <Filter>src\injector</Filter>
     </ClInclude>
-    <ClInclude Include="src\lazyui\runtime.hpp">
-      <Filter>src\lazyui</Filter>
+    <ClInclude Include="src\injector\runtime.hpp">
+      <Filter>src\injector</Filter>
     </ClInclude>
-    <ClInclude Include="src\lazyui\blur.hpp">
-      <Filter>src\lazyui</Filter>
+    <ClInclude Include="src\injector\blur.hpp">
+      <Filter>src\injector</Filter>
     </ClInclude>
-    <ClInclude Include="src\lazyui\backdrop.hpp">
-      <Filter>src\lazyui</Filter>
+    <ClInclude Include="src\injector\backdrop.hpp">
+      <Filter>src\injector</Filter>
     </ClInclude>
-    <ClInclude Include="src\lazyui\image.hpp">
-      <Filter>src\lazyui</Filter>
+    <ClInclude Include="src\injector\image.hpp">
+      <Filter>src\injector</Filter>
     </ClInclude>
     <ClInclude Include="vendor\imgui\imconfig.h">
       <Filter>vendor\imgui</Filter>

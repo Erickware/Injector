@@ -19,7 +19,7 @@
 
 #pragma comment( lib, "dwmapi.lib" )
 
-namespace lazyui
+namespace injector
 {
     struct backdrop_shape
     {
@@ -202,7 +202,7 @@ namespace lazyui
             window_class.lpfnWndProc = &window_proc;
             window_class.hInstance = instance;
             window_class.hbrBackground = static_cast< HBRUSH >( ::GetStockObject( BLACK_BRUSH ) );
-            window_class.lpszClassName = L"LazyUIBackdrop";
+            window_class.lpszClassName = L"InjectorBackdrop";
             if ( !::RegisterClassExW( &window_class ) && ::GetLastError( ) != ERROR_CLASS_ALREADY_EXISTS )
                 return false;
 

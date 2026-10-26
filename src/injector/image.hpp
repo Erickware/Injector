@@ -7,11 +7,11 @@
 #define NOMINMAX
 #endif
 
-#if __has_include( "lazyui_config.hpp" )
-#include "lazyui_config.hpp"
+#if __has_include( "injector_config.hpp" )
+#include "injector_config.hpp"
 #endif
 
-#ifndef LAZYUI_NO_D3D11
+#ifndef INJECTOR_NO_D3D11
 #include <d3d11.h>
 #else
 struct ID3D11Device;

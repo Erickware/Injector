@@ -4,13 +4,13 @@ $ErrorActionPreference = "Stop"
 
 function Run-Phase( [string]$ks, [string]$name )
 {
-    Get-Process LazyUI -ErrorAction SilentlyContinue | Stop-Process -Force
+    Get-Process Injector -ErrorAction SilentlyContinue | Stop-Process -Force
     Start-Sleep -Milliseconds 500
     $out = "$PSScriptRoot\shot_iso_$name.png"
     Remove-Item $out -ErrorAction SilentlyContinue
-    $env:LAZYUI_CAPTURE_SCRIPT = "$ks; shot $out"
-    Start-Process "$PSScriptRoot\..\build\Release\LazyUI.exe" -Wait
-    $env:LAZYUI_CAPTURE_SCRIPT = $null
+    $env:INJECTOR_CAPTURE_SCRIPT = "$ks; shot $out"
+    Start-Process "$PSScriptRoot\..\build\Release\Injector.exe" -Wait
+    $env:INJECTOR_CAPTURE_SCRIPT = $null
     Write-Host "phase $name exit=$LASTEXITCODE"
     return $out
 }
