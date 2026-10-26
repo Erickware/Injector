@@ -74,7 +74,7 @@ Dear ImGui está incluído em [`vendor/imgui`](vendor/imgui). Fontes, ícones e 
 ### Clonar
 
 ```bash
-git clone https://github.com/er1ck-xyz/Injector.git
+git clone https://github.com/Erickware/Injector.git
 cd Injector
 ```
 
@@ -193,13 +193,13 @@ Essas compilações aceitam `INJECTOR_CAPTURE` e `INJECTOR_CAPTURE_SCRIPT`.
 
 ## Contato
 
-[Issues](https://github.com/er1ck-xyz/Injector/issues) · Discord: **`.0x764`**
+[Issues](https://github.com/Erickware/Injector/issues) · Discord: **`.0x764`**
 
 Ao reportar um erro, inclua os passos para reproduzir e a mensagem do log.
 
 <p align="center">
-  <a href="https://github.com/er1ck-xyz/Injector"><img src="https://img.shields.io/badge/GitHub-er1ck--xyz-1E75FC?style=for-the-badge&amp;logo=github&amp;logoColor=white&amp;labelColor=111827" alt="GitHub de er1ck-xyz" /></a>
-  <a href="https://github.com/er1ck-xyz/Injector/issues"><img src="https://img.shields.io/badge/Feedback-Abrir%20issue-8B5CF6?style=for-the-badge&amp;labelColor=111827" alt="Abrir uma issue no repositório" /></a>
+  <a href="https://github.com/Erickware/Injector"><img src="https://img.shields.io/badge/GitHub-er1ck--xyz-1E75FC?style=for-the-badge&amp;logo=github&amp;logoColor=white&amp;labelColor=111827" alt="GitHub de Erickware" /></a>
+  <a href="https://github.com/Erickware/Injector/issues"><img src="https://img.shields.io/badge/Feedback-Abrir%20issue-8B5CF6?style=for-the-badge&amp;labelColor=111827" alt="Abrir uma issue no repositório" /></a>
   <img src="https://img.shields.io/badge/Discord-.0x764-5865F2?style=for-the-badge&amp;logo=discord&amp;logoColor=white&amp;labelColor=111827" alt="Discord: .0x764" />
 </p>
 
