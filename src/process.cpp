@@ -55,27 +55,22 @@ namespace process
 
         architecture native_architecture( )
         {
-#if defined( _M_ARM64 )
-            return architecture::arm64;
-#elif defined( _WIN64 )
-            return architecture::x64;
-#else
-            return architecture::x86;
-#endif
+            SYSTEM_INFO system{ };
+            ::GetNativeSystemInfo( &system );
+            switch ( system.wProcessorArchitecture )
+            {
+            case PROCESSOR_ARCHITECTURE_AMD64: return architecture::x64;
+            case PROCESSOR_ARCHITECTURE_ARM64: return architecture::arm64;
+            case PROCESSOR_ARCHITECTURE_INTEL: return architecture::x86;
+            default: return architecture::unknown;
+            }
         }
 
-        // A system process (or an elevated one this app cannot probe) still has its image
-        // on disk, and the PE header states the target machine outright. Reading it needs
-        // no handle to the process at all, so the architecture is always reported exactly
-        // instead of degrading to "?".
-        architecture architecture_from_image( const std::wstring& path, std::uint32_t pid, architecture known )
+        // Only inspect a confirmed executable path. An unreadable image stays unknown.
+        architecture architecture_from_image( const std::wstring& path, architecture known )
         {
             if ( known != architecture::unknown || path.empty( ) )
                 return known;
-
-            // The 32-bit directory entry exposes no full path; its file is in WOW64.
-            if ( pid == 0 )
-                return architecture::x86;
 
             HANDLE file = ::CreateFileW( path.c_str( ), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                 nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, nullptr );
@@ -96,7 +91,6 @@ namespace process
                 case IMAGE_FILE_MACHINE_I386:  result = architecture::x86;   break;
                 case IMAGE_FILE_MACHINE_AMD64: result = architecture::x64;   break;
                 case IMAGE_FILE_MACHINE_ARM64: result = architecture::arm64; break;
-                case IMAGE_FILE_MACHINE_ARMNT: result = architecture::arm64; break;
                 default: break;
                 }
             }
@@ -120,9 +114,10 @@ namespace process
             {
                 USHORT process_machine = IMAGE_FILE_MACHINE_UNKNOWN;
                 USHORT native_machine = IMAGE_FILE_MACHINE_UNKNOWN;
-                if ( wow64_process2( handle, &process_machine, &native_machine ) && process_machine != IMAGE_FILE_MACHINE_UNKNOWN )
+                if ( wow64_process2( handle, &process_machine, &native_machine ) )
                 {
-                    switch ( process_machine )
+                    const USHORT machine = process_machine == IMAGE_FILE_MACHINE_UNKNOWN ? native_machine : process_machine;
+                    switch ( machine )
                     {
                     case IMAGE_FILE_MACHINE_I386:  return architecture::x86;
                     case IMAGE_FILE_MACHINE_AMD64: return architecture::x64;
@@ -130,7 +125,6 @@ namespace process
                     default: break;
                     }
                 }
-                return architecture::unknown;
             }
 
             if ( wow64_process )
@@ -139,7 +133,7 @@ namespace process
                 if ( wow64_process( handle, &wow64 ) )
                 {
                     if ( wow64 )
-                        return architecture::x86;
+                        return native_architecture( ) == architecture::arm64 ? architecture::unknown : architecture::x86;
                     return native_architecture( );
                 }
             }
@@ -226,12 +220,6 @@ namespace process
             return wide_to_utf8( leaf.data( ), static_cast< int >( leaf.size( ) ) );
         }
 
-        std::wstring image_wide( const wchar_t* path )
-        {
-            const std::wstring wide = path ? path : L"";
-            const std::size_t slash = wide.find_last_of( L"\\/" );
-            return slash == std::wstring::npos ? wide : wide.substr( slash + 1 );
-        }
     }
 
     bool refresh( )
@@ -278,17 +266,8 @@ namespace process
                     if ( query )
                     {
                         if ( ::QueryFullProcessImageNameW( query, 0, path, &length ) )
-                            item.arch = architecture_from_image( std::wstring( path, length ), item.pid, item.arch );
+                            item.arch = architecture_from_image( std::wstring( path, length ), item.arch );
                         ::CloseHandle( query );
-                    }
-                    if ( item.arch == architecture::unknown )
-                    {
-                        // The 32-bit build of this app cannot query 64-bit targets, so the
-                        // fallback there is System32 for system images and SysWOW64 for the
-                        // 32-bit ones; both name the same file, and the header decides.
-                        const bool wow64 = ::GetSystemWow64DirectoryW( path, static_cast< UINT >( std::size( path ) ) ) != 0;
-                        std::wstring candidate = std::wstring( wow64 ? path : L"C:\\Windows\\System32" ) + L"\\" + image_wide( record.szExeFile );
-                        item.arch = architecture_from_image( candidate, item.pid, item.arch );
                     }
                 }
 

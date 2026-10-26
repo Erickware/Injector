@@ -49,38 +49,29 @@ build/                made by the first build (build/Release/LazyUI.exe)
 
 ## Read and change the settings
 
-Every on/off setting (each checkbox and switch) is one `bool` in `ui::bools` (`src/ui/ui.hpp`), in the order the pages show them; the comment beside each value in `ui.hpp` says which setting it is. The other values (sliders, dropdowns, colors, keys, text) are named after their labels in `ui::vars`. Your code reads them any time and can set them too, say from a saved config; the UI follows:
+Application preferences are named fields in `ui::prefs` (`src/ui/ui.hpp`).
+The remaining controls and the current process selection are stored in `ui::vars`.
+Process names, PIDs and architecture come from Windows; log entries come from actual operations.
 
 ```cpp
 #include "ui/ui.hpp"
 
-if ( ui::bools[ 0 ] ) { } // Cs2.exe • 4872 • x64
-if ( ui::bools[ 1 ] ) { } // Chrome.exe • 8436 • x64
-if ( ui::bools[ 2 ] ) { } // Explorer.exe • 6320 • x64
-const int page = ui::vars.page;
-const char* search = ui::vars.search;
-const float injection_delay = ui::vars.injection_delay;
-const int target_process = ui::vars.target_process;
-ui::bools[ 0 ] = false;
-ui::vars.injection_delay = 90.f;
+ui::prefs.enable_animations = true;
+ui::prefs.verbose_logging = true;
+ui::vars.injection_delay = 150.f;
+const unsigned int selected_pid = ui::vars.target_pid;
 ```
 
-## Add a setting
+## Test tools
 
-Pages are in `src/ui/pages.cpp`, one function per page, each panel a child section with its position and size that draws its own look (`begin_child( "Title", position, size, panel )`, or `begin_child( "Title", icons::name_glyph, position, size, panel )` for a panel with an icon before its title); a panel with an arrow in its title row opens and closes when that row is clicked. Widgets stack in it from top to bottom. To add a checkbox, give it one more bool in `ui.hpp`, then call the widget where it goes:
+`test/injtest.c` is a test DLL that displays an `INJTEST-MARKER` window when executed.
+It is not linked into the application and does not populate its process list or logs.
+PowerShell test scripts resolve paths relative to their own directory.
 
-```cpp
-// ui.hpp: one more value in bools, with its label
-inline bool bools[ 15 ]{
-    ...,
-    false  // Triggerbot
-};
-
-// pages.cpp, inside a panel
-checkbox( "Triggerbot", bools[ 14 ] );
-```
-
-The widgets are the design's own (`src/ui/widgets.cpp`): each draws itself the way the design does, animates, and takes input, like Dear ImGui's. Use `set_cursor( { x, y } )` to place one somewhere else in its panel.
+Scripted UI input and frame capture are excluded from normal builds. To build a dedicated
+test executable with these tools enabled, pass `/p:EnableTestHarness=true` to MSBuild,
+or `-DINJECTOR_ENABLE_TEST_HARNESS=ON` to CMake. Test builds accept
+`LAZYUI_CAPTURE` and `LAZYUI_CAPTURE_SCRIPT`; normal builds ignore these variables.
 
 ## Changing the design
 

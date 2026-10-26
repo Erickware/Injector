@@ -9,27 +9,23 @@
 
 namespace ui
 {
-    inline bool bools[ 14 ]{
-        true,  // Cs2.exe • 4872 • x64
-        false, // Chrome.exe • 8436 • x64
-        false, // Explorer.exe • 6320 • x64
-        false, // Svchost.exe • 4188 • x64
-        false, // Discord.exe • 10244 • x64
-        false, // Steam.exe • 7296 • x64
-        false, // Auto Retry On Fail
-        true,  // Injection Alerts
-        true,  // Error Alerts
-        false, // Sound Effects
-        true,  // Enable Animations
-        false, // Reduce Motion
-        true,  // Save Log To File
-        true   // Verbose Logging
+    struct preferences
+    {
+        bool auto_retry = false;
+        bool injection_alerts = true;
+        bool error_alerts = true;
+        bool sound_effects = false;
+        bool enable_animations = true;
+        bool reduce_motion = false;
+        bool save_log_to_file = true;
+        bool verbose_logging = true;
     };
+
+    inline preferences prefs;
 
     struct variables
     {
         int page = 0;
-        int target_process = 0;
         char dll_path[256] = "";   // filled by the Browse dialog on the Inject page
         char search_2[128] = "";
         int method = 0;

@@ -1,7 +1,7 @@
 # td_shot.ps1 — zone probes over a saved frame: which UI state made it visible?
-param( [string]$Shot = "C:\Users\Null!\Downloads\DLL-Injector\test\shot_ll.png" )
+param( [string]$Shot = "$PSScriptRoot\shot_ll.png" )
 $ErrorActionPreference = "Stop"
-. "C:\Users\Null!\Downloads\DLL-Injector\test\ta_lib.ps1"
+. "$PSScriptRoot\ta_lib.ps1"
 
 $b = New-Object System.Drawing.Bitmap( $Shot )
 # window-local zones of interest

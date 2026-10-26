@@ -104,54 +104,11 @@ namespace ui
         return ImVec2{ theme::frame_width, theme::frame_height };
     }
 
-    namespace
-    {
-        // Frame-level diagnostic harness, enabled by LAZYUI_DEBUG_IO=<path>.
-        void debug_io_dump( )
-        {
-            static wchar_t dump_path[260] = { };
-            static int frames = -1;
-            if ( frames < 0 )
-            {
-                const DWORD got = GetEnvironmentVariableW( L"LAZYUI_DEBUG_IO", dump_path, 260 );
-                frames = got > 0 && got < 260 ? 0 : -2;
-            }
-            if ( frames < 0 || frames > 2000 )
-                return;
-            const ImGuiIO& io = ImGui::GetIO( );
-            if ( !ImGui::IsMouseClicked( ImGuiMouseButton_Left ) && !ImGui::IsMouseReleased( ImGuiMouseButton_Left ) )
-            {
-                ++frames;
-                return;
-            }
-            char line[512];
-            _snprintf_s( line, sizeof line, _TRUNCATE,
-                         "f%d pos=(%.0f,%.0f) clicked=%d released=%d anyItemActive=%d wantText=%d winHov=%d disp=(%.0f,%.0f) queueChars=%d\n",
-                         frames,
-                         io.MousePos.x, io.MousePos.y,
-                         ImGui::IsMouseClicked( ImGuiMouseButton_Left ) ? 1 : 0,
-                         ImGui::IsMouseReleased( ImGuiMouseButton_Left ) ? 1 : 0,
-                         ImGui::IsAnyItemActive( ) ? 1 : 0,
-                         io.WantTextInput ? 1 : 0,
-                         ImGui::IsWindowHovered( ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem ) ? 1 : 0,
-                         io.DisplaySize.x, io.DisplaySize.y,
-                         io.InputQueueCharacters.Size );
-            FILE* file = nullptr;
-            if ( _wfopen_s( &file, dump_path, L"ab" ) == 0 && file )
-            {
-                std::fputs( line, file );
-                std::fclose( file );
-            }
-            ++frames;
-        }
-    }
-
     void render( )
     {
         load_images( );
         pages::tick( );
         set_graphics( lazyui::app.device, lazyui::app.swap_chain );
-        debug_io_dump( );
 
         // Settings > Appearance applies at frame scope so every page and widget
         // drawn below already sees the live values:
@@ -195,7 +152,7 @@ namespace ui
                 base_durations[motion_toasts]     = ImMax( base_durations[motion_toasts], 0.28f );
                 seeded = true;
             }
-            const float scale = !bools[10] ? 0.f : ( bools[11] ? 0.45f : 1.f );
+            const float scale = !prefs.enable_animations ? 0.f : ( prefs.reduce_motion ? 0.45f : 1.f );
             for ( int channel = 0; channel < motion_channel_count; ++channel )
                 motion.channels[channel].duration = base_durations[channel] * scale;
         }

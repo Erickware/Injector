@@ -1,6 +1,6 @@
 # td_scan.ps1 — column scan at x=300 over a saved frame: find the real y-ranges
 # of the search box fill and of row 0, instead of trusting derived math.
-param( [string]$Shot = "C:\Users\Null!\Downloads\DLL-Injector\test\shot_iso_search.png" )
+param( [string]$Shot = "$PSScriptRoot\shot_iso_search.png" )
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
 $b = New-Object System.Drawing.Bitmap( $Shot )

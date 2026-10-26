@@ -94,7 +94,7 @@ namespace ui::pages
             char message[192];
             if ( done.success )
             {
-                if ( !bools[7] )
+                if ( !prefs.injection_alerts )
                     return;
                 ImFormatString( message, IM_ARRAYSIZE( message ), "'%s' is now loaded in %s.",
                                 inject::last_dll( ), inject::last_target( ) );
@@ -102,7 +102,7 @@ namespace ui::pages
             }
             else
             {
-                if ( !bools[8] )
+                if ( !prefs.error_alerts )
                     return;
                 ImFormatString( message, IM_ARRAYSIZE( message ),
                                 "See the Injection Log for the failing step." );
@@ -274,23 +274,9 @@ namespace ui::pages
     // Called from ui::render before the frame is built, so the panel never blocks a frame.
     void tick( )
     {
-        // temporary liveness trace for worker-wedging analysis
-        {
-            static int beat = -1;
-            if ( ( ++beat & 15 ) == 0 )
-            {
-                FILE* m = nullptr;
-                if ( fopen_s( &m, "C:\\Users\\Null!\\Downloads\\DLL-Injector\\test\\crash_dbg.txt", "ab" ) == 0 && m )
-                {
-                    std::fprintf( m, "%u ui-beat f%d busy=%d\n", static_cast< unsigned >( GetTickCount( ) ), beat,
-                                  inject::running( ) ? 1 : 0 );
-                    std::fclose( m );
-                }
-            }
-        }
         // Settings > Logging hands its live values to the engine every tick, so a
         // toggle applies to the very next log line with no restart.
-        inject::configure_file_log( bools[12], static_cast< int >( vars.log_retention ) );
+        inject::configure_file_log( prefs.save_log_to_file, static_cast< int >( vars.log_retention ) );
 
         const double now = ImGui::GetTime( );
 
@@ -324,7 +310,7 @@ namespace ui::pages
 
     void injector( )
     {
-        if ( begin_child( "Injector", { 204.f, 19.f }, { 217.28f, 44.39f } ) )
+        if ( begin_child( "Injector", { 204.f, 19.f }, { 676.f, 44.39f } ) )
         {
             ImDrawList* draw = ImGui::GetWindowDrawList( );
             const ImVec2 at = section_pos( );
@@ -421,9 +407,9 @@ namespace ui::pages
                 o.target_x64 = vars.target_selected && std::strcmp( vars.target_arch, "x64" ) == 0;
                 ImStrncpy( o.dll_path, vars.dll_path, sizeof o.dll_path );
                 o.delay_ms = static_cast< int >( vars.injection_delay );
-                o.auto_retry = bools[6];
-                o.verbose = bools[13];
-                o.sound_effects = bools[9];
+                o.auto_retry = prefs.auto_retry;
+                o.verbose = prefs.verbose_logging;
+                o.sound_effects = prefs.sound_effects;
                 if ( !inject::start( o ) )
                     push_notification( notifications, 1, "Injection Busy",
                                        "Wait for the current injection to finish.", 4.f );
@@ -622,7 +608,7 @@ namespace ui::pages
 
     void settings( )
     {
-        if ( begin_child( "Settings", { 204.f, 19.f }, { 250.93f, 44.39f } ) )
+        if ( begin_child( "Settings", { 204.f, 19.f }, { 676.f, 44.39f } ) )
         {
             ImDrawList* draw = ImGui::GetWindowDrawList( );
             const ImVec2 at = section_pos( );
@@ -643,7 +629,7 @@ namespace ui::pages
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 40.f }, at + ImVec2{ 676.f, 41.f }, corner_radii{ }, theme::accent_a94( ) );
             combo_2( "Method", vars.method, method_items );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 87.f }, at + ImVec2{ 676.f, 88.f }, corner_radii{ }, theme::accent_a94( ) );
-            toggle( "Auto Retry On Fail", bools[ 6 ] );
+            toggle( "Auto Retry On Fail", prefs.auto_retry );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 128.f }, at + ImVec2{ 676.f, 129.f }, corner_radii{ }, theme::accent_a94( ) );
             set_cursor( { 14.f, 139.f } );
             slider( "Injection Delay", vars.injection_delay, 0.f, 2000.f, "%.0fms" );
@@ -660,11 +646,11 @@ namespace ui::pages
             draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 38.f, 12.f }, theme::text_muted, "Notifications" );
             draw_icon_glyph( draw, at + ImVec2{ 363.f, 12.f }, theme::icon_muted, icons::chevron_up_glyph );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 40.f }, at + ImVec2{ 391.f, 41.f }, corner_radii{ }, theme::accent_a94( ) );
-            toggle( "Injection Alerts", bools[ 7 ] );
+            toggle( "Injection Alerts", prefs.injection_alerts );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 81.f }, at + ImVec2{ 391.f, 82.f }, corner_radii{ }, theme::accent_a94( ) );
-            toggle( "Error Alerts", bools[ 8 ] );
+            toggle( "Error Alerts", prefs.error_alerts );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 122.f }, at + ImVec2{ 391.f, 123.f }, corner_radii{ }, theme::accent_a94( ) );
-            toggle( "Sound Effects", bools[ 9 ] );
+            toggle( "Sound Effects", prefs.sound_effects );
             add_rounded_rect_stroke( draw, at + ImVec2{ 0.5f, 0.5f }, at + ImVec2{ 390.5f, 168.5f }, corner_radii{ 13.5f }, theme::accent( ), 1.f );
         }
         end_child( );
@@ -681,10 +667,10 @@ namespace ui::pages
             slider_3( "Window Opacity", vars.window_opacity, 0.f, 100.f, "%.0f%%" );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 97.f }, at + ImVec2{ 271.f, 98.f }, corner_radii{ }, theme::accent_a94( ) );
             set_cursor( { 14.f, 109.f } );
-            toggle( "Enable Animations", bools[ 10 ] );
+            toggle( "Enable Animations", prefs.enable_animations );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 138.f }, at + ImVec2{ 271.f, 139.f }, corner_radii{ }, theme::accent_a94( ) );
             set_cursor( { 14.f, 150.f } );
-            toggle( "Reduce Motion", bools[ 11 ] );
+            toggle( "Reduce Motion", prefs.reduce_motion );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 179.f }, at + ImVec2{ 271.f, 180.f }, corner_radii{ }, theme::accent_a94( ) );
             combo_3( "Accent Color", vars.accent_color, accent_color_items );
             add_rounded_rect_stroke( draw, at + ImVec2{ 0.5f, 0.5f }, at + ImVec2{ 270.5f, 231.5f }, corner_radii{ 13.5f }, theme::accent( ), 1.f );
@@ -700,10 +686,10 @@ namespace ui::pages
             draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 38.f, 12.f }, theme::text_muted, "Logging" );
             draw_icon_glyph( draw, at + ImVec2{ 363.f, 12.f }, theme::icon_muted, icons::chevron_up_glyph );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 40.f }, at + ImVec2{ 391.f, 41.f }, corner_radii{ }, theme::accent_a94( ) );
-            toggle( "Save Log To File", bools[ 12 ] );
+            toggle( "Save Log To File", prefs.save_log_to_file );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 81.f }, at + ImVec2{ 391.f, 82.f }, corner_radii{ }, theme::accent_a94( ) );
             set_cursor( { 14.f, 93.f } );
-            toggle( "Verbose Logging", bools[ 13 ] );
+            toggle( "Verbose Logging", prefs.verbose_logging );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 122.f }, at + ImVec2{ 391.f, 123.f }, corner_radii{ }, theme::accent_a94( ) );
             slider_2( "Log Retention", vars.log_retention, 0.f, 30.f, "%.0f" );
             add_rounded_rect_stroke( draw, at + ImVec2{ 0.5f, 0.5f }, at + ImVec2{ 390.5f, 184.5f }, corner_radii{ 13.5f }, theme::accent( ), 1.f );
@@ -713,7 +699,7 @@ namespace ui::pages
 
     void about( )
     {
-        if ( begin_child( "About", { 204.f, 19.f }, { 181.14f, 44.39f } ) )
+        if ( begin_child( "About", { 204.f, 19.f }, { 676.f, 44.39f } ) )
         {
             ImDrawList* draw = ImGui::GetWindowDrawList( );
             const ImVec2 at = section_pos( );
@@ -740,8 +726,22 @@ namespace ui::pages
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 118.f }, at + ImVec2{ 676.f, 119.f }, corner_radii{ }, theme::accent_a94( ) );
             draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 14.f, 129.f }, theme::text_5, "A fast, reliable tool for attaching to running processes" );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 155.f }, at + ImVec2{ 676.f, 156.f }, corner_radii{ }, theme::accent_a94( ) );
+#if defined( _DEBUG )
+            const char* build_configuration = "Debug";
+#else
+            const char* build_configuration = "Release";
+#endif
+#if defined( _M_ARM64 )
+            const char* build_architecture = "arm64";
+#elif defined( _WIN64 )
+            const char* build_architecture = "x64";
+#else
+            const char* build_architecture = "x86";
+#endif
+            char build_label[32];
+            ImFormatString( build_label, IM_ARRAYSIZE( build_label ), "%s %s", build_configuration, build_architecture );
             draw_text( draw, fonts::manrope_extralight_400_12, at + ImVec2{ 14.f, 167.f }, theme::text_5, "Build" );
-            draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 662.364f, 167.f }, theme::text_muted, "Release x64", align_right );
+            draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 662.364f, 167.f }, theme::text_muted, build_label, align_right );
             add_rounded_rect_stroke( draw, at + ImVec2{ 0.5f, 0.5f }, at + ImVec2{ 675.5f, 199.5f }, corner_radii{ 13.5f }, theme::accent( ), 1.f );
         }
         end_child( );
@@ -755,11 +755,18 @@ namespace ui::pages
             draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 38.f, 12.f }, theme::text_muted, "Technologies" );
             draw_icon_glyph( draw, at + ImVec2{ 648.f, 12.f }, theme::icon_muted, icons::chevron_up_glyph );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 40.f }, at + ImVec2{ 676.f, 41.f }, corner_radii{ }, theme::accent_a94( ) );
+#if defined( _MSVC_LANG )
+            constexpr long language_standard = _MSVC_LANG;
+#else
+            constexpr long language_standard = __cplusplus;
+#endif
+            char language_label[16];
+            ImFormatString( language_label, IM_ARRAYSIZE( language_label ), "C++%02ld", language_standard / 100L % 100L );
             draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 14.f, 52.f }, theme::text_muted, "Language" );
-            draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 662.3655f, 52.f }, theme::text_5, "C++17", align_right );
+            draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 662.3655f, 52.f }, theme::text_5, language_label, align_right );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 79.f }, at + ImVec2{ 676.f, 80.f }, corner_radii{ }, theme::accent_a94( ) );
             draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 14.f, 91.f }, theme::text_muted, "UI Framework" );
-            draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 661.698f, 91.f }, theme::text_5, "Dear ImGui v1.90", align_right );
+            draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 661.698f, 91.f }, theme::text_5, "Dear ImGui " IMGUI_VERSION, align_right );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 118.f }, at + ImVec2{ 676.f, 119.f }, corner_radii{ }, theme::accent_a94( ) );
             draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 14.f, 130.f }, theme::text_muted, "Rendering" );
             draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 662.18f, 130.f }, theme::text_5, "DirectX 11", align_right );

@@ -913,16 +913,6 @@ namespace inject
 
         void run( options o )
         {
-            // temporary crash trace: markers land in crash_dbg.txt
-            auto mark = []( const char* tag ) {
-                FILE* m = nullptr;
-                if ( fopen_s( &m, "C:\\Users\\Null!\\Downloads\\DLL-Injector\\test\\crash_dbg.txt", "ab" ) == 0 && m )
-                {
-                    std::fprintf( m, "%u %s\n", static_cast< unsigned >( GetTickCount( ) ), tag );
-                    std::fclose( m );
-                }
-            };
-            mark( "run-enter" );
             status_code.store( 1 );
             loaded.store( false );
 
@@ -987,20 +977,15 @@ namespace inject
                 {
                     if ( o.verbose )
                         log( info, "Waiting %dms (Injection Delay)", o.delay_ms );
-                    mark( "pre-sleep" );
                     Sleep( static_cast< DWORD >( o.delay_ms ) );
-                    mark( "post-sleep" );
                 }
-                mark( "after-sleep" );
 
                 const bool debug_ok = enable_debug_privilege( );
-                mark( "after-debugpriv" );
                 if ( !debug_ok )
                     log( warn, "Debug privileges unavailable: protected processes may fail to open (try running as Administrator)" );
 
                 HANDLE process = OpenProcess( PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_WRITE
                                               | PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, FALSE, o.pid );
-                mark( "after-openprocess" );
                 if ( !process )
                 {
                     win32_fail( "OpenProcess failed", why, sizeof why );
@@ -1019,7 +1004,6 @@ namespace inject
                     if ( attempt > 1 )
                         log( warn, "Retrying (Auto Retry On Fail), attempt %d of %d", attempt, attempts );
 
-                    mark( "before-method" );
                     switch ( o.how )
                     {
                         case method::load_library:
@@ -1032,12 +1016,10 @@ namespace inject
                             success = do_thread_hijack( process, o, o.verbose, why, sizeof why );
                             break;
                     }
-                    mark( "after-method" );
                 }
                 CloseHandle( process );
                 break;
             }
-            mark( "after-loop" );
 
             if ( success )
                 log( ok, "Injection successful: '%s' loaded into %s (PID %u)",
@@ -1052,7 +1034,6 @@ namespace inject
                 finished_target = o.name;
                 finished_dll = base_name( o.dll_path );
             }
-            mark( "completion-written" );
 
             status_code.store( success ? 0 : 2 );
             loaded.store( success );

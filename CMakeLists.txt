@@ -4,6 +4,8 @@
 cmake_minimum_required( VERSION 3.20 )
 project( LazyUI LANGUAGES CXX )
 
+option( INJECTOR_ENABLE_TEST_HARNESS "Enable scripted UI input and frame capture for tests" OFF )
+
 if( NOT WIN32 )
     message( FATAL_ERROR "LazyUI apps are Windows programs (Win32 and DirectX 11)." )
 endif( )
@@ -15,6 +17,7 @@ set( CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" )
 add_executable( LazyUI WIN32
     src/main.cpp
     src/process.cpp
+    src/inject.cpp
     src/lazyui/runtime.cpp
     src/lazyui/blur.cpp
     src/lazyui/image.cpp
@@ -33,6 +36,9 @@ add_executable( LazyUI WIN32
 
 target_include_directories( LazyUI PRIVATE src vendor/imgui )
 target_compile_definitions( LazyUI PRIVATE _WINDOWS NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE )
+if( INJECTOR_ENABLE_TEST_HARNESS )
+    target_compile_definitions( LazyUI PRIVATE LAZYUI_ENABLE_TEST_HARNESS=1 )
+endif( )
 if( MSVC )
     target_compile_options( LazyUI PRIVATE /W3 /sdl /permissive- /MP )
 endif( )

@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef LAZYUI_ENABLE_TEST_HARNESS
+#define LAZYUI_ENABLE_TEST_HARNESS 0
+#endif
+
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -126,6 +130,7 @@ namespace lazyui
             }
             dx11_backend_initialized_ = true;
 
+#if LAZYUI_ENABLE_TEST_HARNESS
             wchar_t capture_path[MAX_PATH]{ };
             if ( ::GetEnvironmentVariableW( L"LAZYUI_CAPTURE", capture_path, MAX_PATH ) > 0 )
                 capture_path_ = capture_path;
@@ -133,6 +138,7 @@ namespace lazyui
             std::vector< wchar_t > script( 32768 );
             if ( ::GetEnvironmentVariableW( L"LAZYUI_CAPTURE_SCRIPT", script.data( ), static_cast< DWORD >( script.size( ) ) ) > 0 )
                 parse_script( script.data( ) );
+#endif
 
             initialized_ = true;
             return true;
@@ -140,8 +146,12 @@ namespace lazyui
 
         void show( int command = SW_SHOWDEFAULT ) const noexcept
         {
-            if ( !window_ || !capture_path_.empty( ) || scripted_ )
+            if ( !window_ )
                 return;
+#if LAZYUI_ENABLE_TEST_HARNESS
+            if ( !capture_path_.empty( ) || scripted_ )
+                return;
+#endif
             ::ShowWindow( window_, command );
             ::UpdateWindow( window_ );
         }
@@ -163,8 +173,10 @@ namespace lazyui
         {
             ImGui_ImplDX11_NewFrame( );
             ImGui_ImplWin32_NewFrame( );
+#if LAZYUI_ENABLE_TEST_HARNESS
             if ( scripted_ )
                 play_script( );
+#endif
             ImGui::NewFrame( );
         }
 
@@ -175,6 +187,7 @@ namespace lazyui
             device_context_->OMSetRenderTargets( 1, &target, nullptr );
             device_context_->ClearRenderTargetView( target, clear_color.data( ) );
             ImGui_ImplDX11_RenderDrawData( ImGui::GetDrawData( ) );
+#if LAZYUI_ENABLE_TEST_HARNESS
             if ( !capture_path_.empty( ) && !scripted_ && ++captured_frames_ == capture_frame_count )
             {
                 const bool saved = save_back_buffer( capture_path_ );
@@ -192,6 +205,9 @@ namespace lazyui
                 present_on_screen( );
             else
                 swap_chain_->Present( 0, 0 );
+#else
+            present_on_screen( );
+#endif
         }
 
         void shutdown( ) noexcept
@@ -245,6 +261,7 @@ namespace lazyui
         [[nodiscard]] IDXGISwapChain* swap_chain( ) const noexcept { return swap_chain_.Get( ); }
 
     private:
+#if LAZYUI_ENABLE_TEST_HARNESS
         struct script_step
         {
             std::wstring command;
@@ -253,6 +270,7 @@ namespace lazyui
             float y = 0.f;
             int frames = 0;
         };
+#endif
 
         void present_on_screen( ) noexcept
         {
@@ -297,6 +315,7 @@ namespace lazyui
                 ::SwitchToThread( );
         }
 
+#if LAZYUI_ENABLE_TEST_HARNESS
         void parse_script( const std::wstring& source )
         {
             std::size_t start = 0;
@@ -377,6 +396,7 @@ namespace lazyui
                 return;
             }
         }
+#endif
 
         [[nodiscard]] bool create_device( ) noexcept
         {
@@ -427,6 +447,7 @@ namespace lazyui
             return SUCCEEDED( device_->CreateRenderTargetView( back_buffer.Get( ), nullptr, render_target_.GetAddressOf( ) ) );
         }
 
+#if LAZYUI_ENABLE_TEST_HARNESS
         [[nodiscard]] bool save_back_buffer( const std::wstring& path ) noexcept
         {
             Microsoft::WRL::ComPtr< ID3D11Texture2D > back_buffer;
@@ -491,6 +512,7 @@ namespace lazyui
                 ::CoUninitialize( );
             return saved;
         }
+#endif
 
         void resize( UINT width, UINT height ) noexcept
         {
@@ -554,6 +576,7 @@ namespace lazyui
         backdrop_windows backdrop_;
         bool paced_ = true;
         int quick_flushes_ = 0;
+#if LAZYUI_ENABLE_TEST_HARNESS
         static constexpr int capture_frame_count = 12;
         std::wstring capture_path_;
         int captured_frames_ = 0;
@@ -562,6 +585,8 @@ namespace lazyui
         std::wstring pending_shot_;
         bool scripted_ = false;
         bool script_failed_ = false;
+#endif
+
         bool class_registered_ = false;
         bool imgui_context_created_ = false;
         bool win32_backend_initialized_ = false;

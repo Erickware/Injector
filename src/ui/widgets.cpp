@@ -14,14 +14,7 @@ namespace ui::widgets
 
     namespace
     {
-        // Custom focus-safe replacement for the runtime's edit_search/edit_field.
-        // The runtime helpers queue keyboard focus from inside the input helper
-        // itself, which on this ImGui build never activates the widget (measured:
-        // click arrives at the field, anyItemActive stays 0, typed characters die
-        // unconsumed). Editing the runtime is not allowed, so the text fields that
-        // need to work own their state here and talk to ImGui directly, exactly
-        // the way a bare InputText with a scoped SetKeyboardFocusHere does — that
-        // path was verified to activate and to accept characters.
+        // Native ImGui fields own keyboard focus and keep the edit buffer stable.
         struct text_edit
         {
             char buffer[128]{ };

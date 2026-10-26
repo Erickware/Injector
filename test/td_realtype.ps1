@@ -1,7 +1,7 @@
 # td_realtype.ps1 — REAL input path sanity test: visible window, foreground,
 # OS-level mouse click, SendInput with virtual-key scancodes (no synthetic io).
 $ErrorActionPreference = "Stop"
-. "C:\Users\Null!\Downloads\DLL-Injector\test\ta_lib.ps1"
+. "$PSScriptRoot\ta_lib.ps1"
 
 Add-Type -TypeDefinition @"
 using System;
@@ -27,7 +27,7 @@ public static class TK2
 
 Get-Process LazyUI -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 600
-$app = Start-Process "C:\Users\Null!\Downloads\DLL-Injector\build\Release\LazyUI.exe" -PassThru
+$app = Start-Process "$PSScriptRoot\..\build\Release\LazyUI.exe" -PassThru
 Start-Sleep -Seconds 4
 $hwnd = Get-MainWindow "LazyUI Loader"
 "hwnd=$hwnd"

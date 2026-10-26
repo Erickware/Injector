@@ -157,7 +157,7 @@ function Close-Marker( )
 
 function Read-InjectLog( )
 {
-    $p = "C:\Users\Null!\Downloads\DLL-Injector\build\Release\injector.log"
+    $p = "$PSScriptRoot\..\build\Release\injector.log"
     if ( Test-Path $p ) { return ( Get-Content $p -Tail 60 ) }
     return @( )
 }

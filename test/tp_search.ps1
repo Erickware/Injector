@@ -35,7 +35,7 @@ function Get-MainWindow( [string]$title )
 }
 Get-Process LazyUI -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 600
-Start-Process "C:\Users\Null!\Downloads\DLL-Injector\build\Release\LazyUI.exe"
+Start-Process "$PSScriptRoot\..\build\Release\LazyUI.exe"
 Start-Sleep -Milliseconds 2200
 $hw = Get-MainWindow "LazyUI Loader"
 $r = New-Object WRECT; [void][TU]::GetWindowRect( $hw, [ref]$r )

@@ -1,9 +1,9 @@
 # tp_combo.ps1 — calibrate the Settings > Method combo field center via scripted clicks.
 param( [int]$Y = 142 )
 $ErrorActionPreference = "Stop"
-. "C:\Users\Null!\Downloads\DLL-Injector\test\ta_lib.ps1"
+. "$PSScriptRoot\ta_lib.ps1"
 
-$out = "C:\Users\Null!\Downloads\DLL-Injector\test\probe_combo_$Y.png"
+$out = "$PSScriptRoot\probe_combo_$Y.png"
 Remove-Item $out -ErrorAction SilentlyContinue
 
 Get-Process LazyUI -ErrorAction SilentlyContinue | Stop-Process -Force
@@ -11,7 +11,7 @@ Start-Sleep -Milliseconds 500
 
 $script = "move 92 149; down; up; wait 60; move 782 $Y; down; up; wait 45; shot $out"
 $env:LAZYUI_CAPTURE_SCRIPT = $script
-Start-Process "C:\Users\Null!\Downloads\DLL-Injector\build\Release\LazyUI.exe" -Wait
+Start-Process "$PSScriptRoot\..\build\Release\LazyUI.exe" -Wait
 $env:LAZYUI_CAPTURE_SCRIPT = $null
 "exit=$LASTEXITCODE"
 

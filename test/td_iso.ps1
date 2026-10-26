@@ -1,15 +1,15 @@
 # td_iso.ps1 — isolation probes: A) row click alone, B) search typing alone.
 $ErrorActionPreference = "Stop"
-. "C:\Users\Null!\Downloads\DLL-Injector\test\ta_lib.ps1"
+. "$PSScriptRoot\ta_lib.ps1"
 
 function Run-Phase( [string]$ks, [string]$name )
 {
     Get-Process LazyUI -ErrorAction SilentlyContinue | Stop-Process -Force
     Start-Sleep -Milliseconds 500
-    $out = "C:\Users\Null!\Downloads\DLL-Injector\test\shot_iso_$name.png"
+    $out = "$PSScriptRoot\shot_iso_$name.png"
     Remove-Item $out -ErrorAction SilentlyContinue
     $env:LAZYUI_CAPTURE_SCRIPT = "$ks; shot $out"
-    Start-Process "C:\Users\Null!\Downloads\DLL-Injector\build\Release\LazyUI.exe" -Wait
+    Start-Process "$PSScriptRoot\..\build\Release\LazyUI.exe" -Wait
     $env:LAZYUI_CAPTURE_SCRIPT = $null
     Write-Host "phase $name exit=$LASTEXITCODE"
     return $out

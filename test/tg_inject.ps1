@@ -7,14 +7,14 @@ param(
     [int]$Method = 0,                 # 0 LoadLibrary, 1 Manual Map, 2 Thread Hijack
     [string]$Target = "notepad",
     [switch]$NoDll,
-    [string]$DllPath = "C:\Users\Null!\Downloads\DLL-Injector\test\injtest.dll",
+    [string]$DllPath = "$PSScriptRoot\injtest.dll",
     [string]$Wow64 = "",              # set to a SysWOW64 exe to spawn a 32-bit target
-    [string]$Shot = "C:\Users\Null!\Downloads\DLL-Injector\test\shot_gauntlet.png"
+    [string]$Shot = "$PSScriptRoot\shot_gauntlet.png"
 )
 $ErrorActionPreference = "Stop"
-. "C:\Users\Null!\Downloads\DLL-Injector\test\ta_lib.ps1"
+. "$PSScriptRoot\ta_lib.ps1"
 
-$logPath = "C:\Users\Null!\Downloads\DLL-Injector\build\Release\injector.log"
+$logPath = "$PSScriptRoot\..\build\Release\injector.log"
 
 # ---- world -----------------------------------------------------------------
 Get-Process LazyUI -ErrorAction SilentlyContinue | Stop-Process -Force
@@ -54,7 +54,7 @@ $ks = [string]::Join( "; ", $steps )
 
 # ---- run ---------------------------------------------------------------------
 $env:LAZYUI_CAPTURE_SCRIPT = $ks
-$app = Start-Process "C:\Users\Null!\Downloads\DLL-Injector\build\Release\LazyUI.exe" -PassThru
+$app = Start-Process "$PSScriptRoot\..\build\Release\LazyUI.exe" -PassThru
 $env:LAZYUI_CAPTURE_SCRIPT = $null
 
 # ---- dialog companion: fills the OFN file name box when Browse opens ---------
