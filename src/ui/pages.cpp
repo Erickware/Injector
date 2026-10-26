@@ -846,12 +846,6 @@ namespace ui::pages
         }
         end_child( );
 
-        if ( begin_child( "Search##3", { 677.f, 20.f }, { 203.f, 36.f }, { 0.f, 0.f }, 0.f ) )
-        {
-            search_box( "Search...", vars.search_4 );
-        }
-        end_child( );
-
         if ( begin_child( "Project", { 204.f, 78.f }, { 676.f, 200.f } ) )
         {
             ImDrawList* draw = ImGui::GetWindowDrawList( );

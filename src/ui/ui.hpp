@@ -39,7 +39,6 @@ namespace ui
         float window_opacity = 100.f;
         int accent_color = 0;
         float log_retention = 14.f;
-        char search_4[128] = "";
 
         // process list, filled by process::refresh() through ui::pages::tick()
         int process_count = 0;
