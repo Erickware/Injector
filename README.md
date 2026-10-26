@@ -198,7 +198,7 @@ Essas compilações aceitam `INJECTOR_CAPTURE` e `INJECTOR_CAPTURE_SCRIPT`.
 Ao reportar um erro, inclua os passos para reproduzir e a mensagem do log.
 
 <p align="center">
-  <a href="https://github.com/Erickware/Injector"><img src="https://img.shields.io/badge/GitHub-er1ck--xyz-1E75FC?style=for-the-badge&amp;logo=github&amp;logoColor=white&amp;labelColor=111827" alt="GitHub de Erickware" /></a>
+  <a href="https://github.com/Erickware/Injector"><img src="https://img.shields.io/badge/GitHub-erickware-1E75FC?style=for-the-badge&amp;logo=github&amp;logoColor=white&amp;labelColor=111827" alt="GitHub de Erickware" /></a>
   <a href="https://github.com/Erickware/Injector/issues"><img src="https://img.shields.io/badge/Feedback-Abrir%20issue-8B5CF6?style=for-the-badge&amp;labelColor=111827" alt="Abrir uma issue no repositório" /></a>
   <img src="https://img.shields.io/badge/Discord-.0x764-5865F2?style=for-the-badge&amp;logo=discord&amp;logoColor=white&amp;labelColor=111827" alt="Discord: .0x764" />
 </p>
