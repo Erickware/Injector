@@ -570,7 +570,7 @@ namespace lazyui
     search_state& search_for( const char* buffer );
     button_state& button_for( const char* id );
 
-    bool begin_child( const char* id, ImVec2 position, ImVec2 size, ImVec2 padding = ImVec2{ }, float spacing = 0.f );
+    bool begin_child( const char* id, ImVec2 position, ImVec2 size, ImVec2 padding = ImVec2{ }, float spacing = 0.f, ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground );
     void end_child( );
 
     using child_look = void ( * )( ImDrawList* draw, ImVec2 at, ImVec2 size, const char* title, const char* icon, float open );

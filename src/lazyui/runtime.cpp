@@ -2627,7 +2627,7 @@ float4 main(PS_INPUT input) : SV_Target
 
     namespace
     {
-        bool open_child( const char* id, ImVec2 position, ImVec2 size, ImVec2 padding, float spacing )
+        bool open_child( const char* id, ImVec2 position, ImVec2 size, ImVec2 padding, float spacing, ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground )
         {
             position.y -= column_offset( position, size.x );
             ImGui::SetCursorScreenPos( section_origin( position ) );
@@ -2636,9 +2636,9 @@ float4 main(PS_INPUT input) : SV_Target
             ImGui::PushStyleVar( ImGuiStyleVar_ChildRounding, 0.f );
             ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 0 ) );
 #if IMGUI_VERSION_NUM >= 19000
-            const bool visible = ImGui::BeginChild( id, size, ImGuiChildFlags_AlwaysUseWindowPadding, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground );
+            const bool visible = ImGui::BeginChild( id, size, ImGuiChildFlags_AlwaysUseWindowPadding, flags );
 #else
-            const bool visible = ImGui::BeginChild( id, size, false, ImGuiWindowFlags_AlwaysUseWindowPadding | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground );
+            const bool visible = ImGui::BeginChild( id, size, false, ImGuiWindowFlags_AlwaysUseWindowPadding | flags );
 #endif
             ImGui::PopStyleColor( );
             ImGui::PopStyleVar( 3 );
@@ -2659,9 +2659,9 @@ float4 main(PS_INPUT input) : SV_Target
         }
     }
 
-    bool begin_child( const char* id, ImVec2 position, ImVec2 size, ImVec2 padding, float spacing )
+    bool begin_child( const char* id, ImVec2 position, ImVec2 size, ImVec2 padding, float spacing, ImGuiWindowFlags flags )
     {
-        return open_child( id, position, size, padding, spacing );
+        return open_child( id, position, size, padding, spacing, flags );
     }
 
     bool begin_child( const char* id, ImVec2 position, ImVec2 size, const child_style& style, bool open )

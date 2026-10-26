@@ -498,24 +498,38 @@ namespace ui::pages
         }
         end_child( );
 
-        if ( begin_child( "Injection Log", { 609.f, 294.f }, { 271.f, 247.f }, { 14.f, 199.f }, 0.f ) )
+        if ( begin_child( "Injection Log", { 609.f, 294.f }, { 271.f, 431.f }, { 14.f, 383.f }, 0.f ) )
         {
             ImDrawList* draw = ImGui::GetWindowDrawList( );
             const ImVec2 at = section_pos( );
-            add_rounded_rect_filled( draw, at, at + ImVec2{ 271.f, 247.f }, corner_radii{ 14.f }, theme::surface );
+            add_rounded_rect_filled( draw, at, at + ImVec2{ 271.f, 431.f }, corner_radii{ 14.f }, theme::surface );
             draw_icon_glyph( draw, at + ImVec2{ 14.f, 12.f }, theme::icon_blue( ), icons::scroll_text_glyph );
             draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 38.f, 12.f }, theme::text_muted, "Injection Log" );
             draw_icon_glyph( draw, at + ImVec2{ 243.f, 12.f }, theme::icon_muted, icons::chevron_up_glyph );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 40.f }, at + ImVec2{ 271.f, 41.f }, corner_radii{ }, theme::accent_a94( ) );
-            // Live view of inject::log: every line is produced by a real call inside
-            // the injection engine (loader steps, Win32 results), never hand-written.
-            // Newest first, colouring by severity like a real log tail.
+            // Wrap full messages and let the viewport scroll through the entire
+            // snapshot. The footer stays outside it so Clear Log remains visible.
+            ImGui::PushStyleVar( ImGuiStyleVar_ScrollbarSize, 10.f );
+            ImGui::PushStyleVar( ImGuiStyleVar_ScrollbarRounding, 5.f );
+            ImGui::PushStyleColor( ImGuiCol_ScrollbarBg, theme::surface );
+            ImGui::PushStyleColor( ImGuiCol_ScrollbarGrab, theme::surface_3 );
+            ImGui::PushStyleColor( ImGuiCol_ScrollbarGrabHovered, theme::surface_5 );
+            ImGui::PushStyleColor( ImGuiCol_ScrollbarGrabActive, theme::icon_blue( ) );
+            ImGui::PushStyleColor( ImGuiCol_Separator, theme::accent_a94( ) );
+            ImFont* log_font = slot_font( fonts::manrope_extralight_400_11 );
+            if ( log_font )
+                ImGui::PushFont( log_font, slot_font_size( fonts::manrope_extralight_400_11 ) );
+            if ( begin_child( "Entries##InjectionLog", { 14.f, 48.f }, { 243.f, 325.f }, { 0.f, 0.f }, 6.f,
+                              ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_AlwaysVerticalScrollbar ) )
             {
                 const std::vector< inject::entry > lines = inject::snapshot( );
+                ImGui::PushTextWrapPos( 0.f );
                 if ( lines.empty( ) )
                 {
-                    draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 14.f, 51.f }, theme::text_6,
-                               "No events yet: pick a target and a DLL." );
+                    ImGui::SetScrollY( 0.f );
+                    ImGui::PushStyleColor( ImGuiCol_Text, theme::text_6 );
+                    ImGui::TextUnformatted( "No events yet: pick a target and a DLL." );
+                    ImGui::PopStyleColor( );
                 }
                 else
                 {
@@ -525,23 +539,28 @@ namespace ui::pages
                         IM_COL32( 251, 191, 36, 255 ),
                         IM_COL32( 248, 113, 113, 255 )
                     };
-                    float row_y = 51.f;
-                    int row = 0;
-                    for ( auto it = lines.rbegin( ); it != lines.rend( ) && row < 6; ++it, ++row, row_y += 26.f )
+                    for ( auto it = lines.rbegin( ); it != lines.rend( ); ++it )
                     {
                         char row_text[400];
                         ImFormatString( row_text, IM_ARRAYSIZE( row_text ), "[%s] %s", it->time, it->text );
-                        draw->PushClipRect( at + ImVec2{ 14.f, row_y - 2.f }, at + ImVec2{ 257.f, row_y + 14.f }, false );
-                        draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 14.f, row_y }, colors[ it->level & 3 ], row_text );
-                        draw->PopClipRect( );
-                        if ( row < 5 )
-                            add_rounded_rect_filled( draw, at + ImVec2{ 0.f, row_y + 22.f }, at + ImVec2{ 271.f, row_y + 23.f }, corner_radii{ }, theme::accent_a94( ) );
+                        ImGui::PushStyleColor( ImGuiCol_Text, colors[ it->level & 3 ] );
+                        ImGui::TextUnformatted( row_text );
+                        ImGui::PopStyleColor( );
+                        if ( it + 1 != lines.rend( ) )
+                            ImGui::Separator( );
                     }
                 }
+                ImGui::PopTextWrapPos( );
             }
+            end_child( );
+            if ( log_font )
+                ImGui::PopFont( );
+            ImGui::PopStyleColor( 5 );
+            ImGui::PopStyleVar( 2 );
+            set_cursor( { 14.f, 383.f } );
             if ( button_4( "Clear Log" ) )
                 inject::clear_log( );
-            add_rounded_rect_stroke( draw, at + ImVec2{ 0.5f, 0.5f }, at + ImVec2{ 270.5f, 246.5f }, corner_radii{ 13.5f }, theme::accent( ), 1.f );
+            add_rounded_rect_stroke( draw, at + ImVec2{ 0.5f, 0.5f }, at + ImVec2{ 270.5f, 430.5f }, corner_radii{ 13.5f }, theme::accent( ), 1.f );
         }
         end_child( );
 
