@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{3F1C2B8A-7D4E-4A6B-9E2C-1B5D8F0A6C31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\lazyui">
+      <UniqueIdentifier>{6D0B9E44-1A2F-4C7D-8B3E-2F9A6C1D5E70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\ui">
+      <UniqueIdentifier>{C5E8A3D1-9F2B-4D6E-A7C4-3B1E0F9D2A53}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor">
+      <UniqueIdentifier>{9E4A7C2B-5D1F-4B8A-A6E3-7C0D2F8B1A94}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor\imgui">
+      <UniqueIdentifier>{8A2D5E1F-4B7C-4E9A-B3D6-0C8F2A1E7D42}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\process.cpp">
+      <Filter>src</Filter>
+    </ClCompile>    <ClCompile Include="src\lazyui\runtime.cpp">
+      <Filter>src\lazyui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lazyui\blur.cpp">
+      <Filter>src\lazyui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lazyui\image.cpp">
+      <Filter>src\lazyui</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui.cpp">
+      <Filter>vendor\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_draw.cpp">
+      <Filter>vendor\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_tables.cpp">
+      <Filter>vendor\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_widgets.cpp">
+      <Filter>vendor\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_impl_dx11.cpp">
+      <Filter>vendor\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\imgui\imgui_impl_win32.cpp">
+      <Filter>vendor\imgui</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\process.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lazyui\lazyui.hpp">
+      <Filter>src\lazyui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lazyui\window.hpp">
+      <Filter>src\lazyui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lazyui\runtime.hpp">
+      <Filter>src\lazyui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lazyui\blur.hpp">
+      <Filter>src\lazyui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lazyui\backdrop.hpp">
+      <Filter>src\lazyui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lazyui\image.hpp">
+      <Filter>src\lazyui</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imconfig.h">
+      <Filter>vendor\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imgui.h">
+      <Filter>vendor\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imgui_internal.h">
+      <Filter>vendor\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imgui_impl_dx11.h">
+      <Filter>vendor\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imgui_impl_win32.h">
+      <Filter>vendor\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imstb_rectpack.h">
+      <Filter>vendor\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imstb_textedit.h">
+      <Filter>vendor\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\imgui\imstb_truetype.h">
+      <Filter>vendor\imgui</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <!-- <figma-generated-filter-items> -->
+  <ItemGroup>
+    <ClInclude Include="src\ui\ui.hpp">
+      <Filter>src\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\pages.hpp">
+      <Filter>src\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\widgets.hpp">
+      <Filter>src\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\theme.hpp">
+      <Filter>src\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\assets.hpp">
+      <Filter>src\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\fonts.hpp">
+      <Filter>src\ui</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\ui\ui.cpp">
+      <Filter>src\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\pages.cpp">
+      <Filter>src\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\widgets.cpp">
+      <Filter>src\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\assets.cpp">
+      <Filter>src\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\fonts.cpp">
+      <Filter>src\ui</Filter>
+    </ClCompile>
+  </ItemGroup>
+<!-- </figma-generated-filter-items> -->
+</Project>
