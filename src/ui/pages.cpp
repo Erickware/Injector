@@ -334,12 +334,6 @@ namespace ui::pages
         }
         end_child( );
 
-        if ( begin_child( "Search", { 677.f, 20.f }, { 203.f, 36.f }, { 0.f, 0.f }, 0.f ) )
-        {
-            search_box( "Search...", vars.search );
-        }
-        end_child( );
-
         if ( begin_child( "Inject DLL", { 204.f, 78.f }, { 391.f, 217.f }, { 14.f, 49.f }, 21.f ) )
         {
             ImDrawList* draw = ImGui::GetWindowDrawList( );
@@ -635,12 +629,6 @@ namespace ui::pages
             draw_icon_glyph( draw, at + ImVec2{ 0.f, 2.f }, theme::icon_blue( ), icons::settings_2_glyph );
             draw_text( draw, fonts::manrope_extralight_500_18, at + ImVec2{ 32.f, 0.f }, theme::text, "Settings" );
             draw_text( draw, fonts::manrope_extralight_400_12, at + ImVec2{ 0.f, 28.f }, theme::text_5, "Configure injection behavior and appearance." );
-        }
-        end_child( );
-
-        if ( begin_child( "Search##2", { 677.f, 20.f }, { 203.f, 36.f }, { 0.f, 0.f }, 0.f ) )
-        {
-            search_box( "Search...", vars.search_3 );
         }
         end_child( );
 

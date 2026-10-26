@@ -29,11 +29,9 @@ namespace ui
     struct variables
     {
         int page = 0;
-        char search[128] = "";
         int target_process = 0;
         char dll_path[256] = "";   // filled by the Browse dialog on the Inject page
         char search_2[128] = "";
-        char search_3[128] = "";
         int method = 0;
         float injection_delay = 150.f;
         float window_opacity = 100.f;
