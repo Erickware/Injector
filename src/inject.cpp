@@ -252,6 +252,59 @@ namespace inject
             return attr != INVALID_FILE_ATTRIBUTES && ( attr & FILE_ATTRIBUTE_DIRECTORY ) == 0;
         }
 
+        // A thread exit code is a DWORD, so it cannot carry an x64 HMODULE.
+        // Obtain the full base address from the target's module snapshot instead.
+        uintptr_t loaded_module_base( HANDLE process, const std::wstring& dll, char* why, std::size_t why_size )
+        {
+            const DWORD pid = GetProcessId( process );
+            if ( !pid )
+            {
+                win32_fail( "could not query the target process ID", why, why_size );
+                return 0;
+            }
+            HANDLE snapshot = INVALID_HANDLE_VALUE;
+            for ( int attempt = 0; attempt < 8; ++attempt )
+            {
+                snapshot = CreateToolhelp32Snapshot( TH32CS_SNAPMODULE, pid );
+                if ( snapshot != INVALID_HANDLE_VALUE || GetLastError( ) != ERROR_BAD_LENGTH )
+                    break;
+            }
+            if ( snapshot == INVALID_HANDLE_VALUE )
+            {
+                win32_fail( "could not enumerate the target modules", why, why_size );
+                return 0;
+            }
+
+            const bool has_path = dll.find_first_of( L"\\/" ) != std::wstring::npos;
+            MODULEENTRY32W entry{ };
+            entry.dwSize = sizeof entry;
+            uintptr_t base = 0;
+            if ( Module32FirstW( snapshot, &entry ) )
+            {
+                do
+                {
+                    if ( _wcsicmp( has_path ? entry.szExePath : entry.szModule, dll.c_str( ) ) == 0 )
+                    {
+                        base = reinterpret_cast< uintptr_t >( entry.modBaseAddr );
+                        break;
+                    }
+                } while ( Module32NextW( snapshot, &entry ) );
+            }
+            const DWORD enumeration_error = GetLastError( );
+            CloseHandle( snapshot );
+            if ( !base )
+            {
+                if ( enumeration_error != ERROR_NO_MORE_FILES && enumeration_error != ERROR_SUCCESS )
+                {
+                    SetLastError( enumeration_error );
+                    win32_fail( "could not read the target module list", why, why_size );
+                }
+                else
+                    _snprintf_s( why, why_size, _TRUNCATE, "loaded module '%s' was not found in the target module list", to_utf8( dll.c_str( ) ).c_str( ) );
+            }
+            return base;
+        }
+
         // A remote LoadLibraryW call shared by every method that needs a module
         // inside the target. Returns the module's base address, 0 on failure.
         uintptr_t remote_load_library( HANDLE process, const std::wstring& dll, char* why, std::size_t why_size )
@@ -287,11 +340,13 @@ namespace inject
                     else
                     {
                         DWORD code = 0;
-                        GetExitCodeThread( thread, &code );
-                        result = code;   // 0 == LoadLibraryW returned NULL in the target
-                        if ( !result )
-                            _snprintf_s( why, why_size, _TRUNCATE, "the target refused to load '%s'",
+                        if ( !GetExitCodeThread( thread, &code ) )
+                            win32_fail( "could not query the loader thread result", why, why_size );
+                        else if ( !code )
+                            _snprintf_s( why, why_size, _TRUNCATE, "LoadLibraryW returned NULL in the target for '%s'",
                                          to_utf8( dll.c_str( ) ).c_str( ) );
+                        else
+                            result = loaded_module_base( process, dll, why, why_size );
                     }
                     CloseHandle( thread );
                 }
