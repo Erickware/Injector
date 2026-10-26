@@ -390,9 +390,12 @@ namespace ui::widgets
         const ImVec2 at = ImGui::GetCursorScreenPos( );
         button_state& state = button_for( label );
         const bool changed = update_button( state, at, at + ImVec2{ 648.f, 32.f } );
+        ImFont* font = slot_font( fonts::manrope_extralight_600_12 );
+        const float text_width = font ? font->CalcTextSizeA( slot_font_size( fonts::manrope_extralight_600_12 ), FLT_MAX, 0.f, label ).x : ImGui::CalcTextSize( label ).x;
+        const float content_x = ( 648.f - 15.f - 8.f - text_width ) * 0.5f;
         add_rounded_rect_filled( draw, at, at + ImVec2{ 648.f, 32.f }, corner_radii{ 10.f }, mix_color( mix_color( theme::surface_2, theme::surface_3, state.hover ), theme::surface_4, state.press ) );
-        draw_icon_glyph( draw, at + ImVec2{ 268.f, 8.5f }, theme::text, icon );
-        draw_text( draw, fonts::manrope_extralight_600_12, at + ImVec2{ 291.f, 8.f }, theme::text, label );
+        draw_icon_glyph( draw, at + ImVec2{ content_x, 8.5f }, theme::text, icon );
+        draw_text( draw, fonts::manrope_extralight_600_12, at + ImVec2{ content_x + 23.f, 8.f }, theme::text, label );
         add_rounded_rect_stroke( draw, at + ImVec2{ 0.5f, 0.5f }, at + ImVec2{ 647.5f, 31.5f }, corner_radii{ 9.5f }, theme::accent( ), 1.f );
         item( ImVec2{ 648.f, 32.f } );
         return changed;

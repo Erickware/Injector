@@ -98,5 +98,6 @@ namespace ui
         extern const char scroll_text_2_glyph[];
         extern const char code_2_glyph[];
         extern const char bug_glyph[];
+        extern const char discord_glyph[];
     }
 }

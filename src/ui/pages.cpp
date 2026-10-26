@@ -913,11 +913,13 @@ namespace ui::pages
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 79.f }, at + ImVec2{ 676.f, 80.f }, corner_radii{ }, theme::accent_a94( ) );
             draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 14.f, 90.f }, theme::text_5, "Thanks to the open-source Dear ImGui community." );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 116.f }, at + ImVec2{ 676.f, 117.f }, corner_radii{ }, theme::accent_a94( ) );
-            button_5( "Documentation", icons::scroll_text_2_glyph );
+            button_5( "My Discord: .0x764", icons::discord_glyph );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 169.f }, at + ImVec2{ 676.f, 170.f }, corner_radii{ }, theme::accent_a94( ) );
-            button_6( "GitHub Repository" );
+            if ( button_6( "GitHub Repository" ) )
+                open_link( "https://github.com/er1ck-xyz/Injector" );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 222.f }, at + ImVec2{ 676.f, 223.f }, corner_radii{ }, theme::accent_a94( ) );
-            button_5( "Report an Issue", icons::bug_glyph );
+            if ( button_5( "Report an Issue", icons::bug_glyph ) )
+                open_link( "https://github.com/er1ck-xyz/Injector/issues" );
             add_rounded_rect_stroke( draw, at + ImVec2{ 0.5f, 0.5f }, at + ImVec2{ 675.5f, 280.5f }, corner_radii{ 13.5f }, theme::accent( ), 1.f );
         }
         end_child( );
