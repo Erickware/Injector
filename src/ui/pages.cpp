@@ -35,16 +35,8 @@ namespace ui::pages
         // ---- process list state -------------------------------------------------
 
         std::vector< process::entry > shown;      // what the panel drew this frame
-        int shown_count = 0;
-        float list_scroll = 0.f;
         double last_refresh = -1.0;
         bool refresh_requested = true;
-
-        // Scrollbar on the right edge of the row viewport (webpage-style: the thumb
-        // follows the scroll, or the user drags / clicks on it to scroll).
-        bool bar_dragging = false;      // thumb follows the pointer
-        double bar_repeat_at = -1.0;    // next track page-jump time (ImGui::GetTime clock)
-        float bar_hover = 0.f;          // hover animation 0..1, same channels as the widgets
 
         // Modal Win32 picker behind the Browse button. The app window owns the dialog
         // so it stays on top of the injector; OFN_NOCHANGEDIR keeps our working
@@ -188,7 +180,6 @@ namespace ui::pages
 
         // lazyui::draw_text takes the TOP of the line box, not a baseline, so every y here
         // is a box top. The font slots are 12px and 11px tall in the design.
-        constexpr float row_font_height = 12.f;
         constexpr float chip_font_height = 11.f;
         constexpr float chip_height = 15.f;
         constexpr float chip_pad_x = 7.f;
@@ -215,32 +206,22 @@ namespace ui::pages
             }
         }
 
-        // The design satisfies the row selection through the mock checkboxes. The runtime
-        // keys each switch state by the ADDRESS of the bool it is handed and never reads
-        // it back after seeding, so two processes must never share one flag. A capped
-        // slot array made every process past the cap share a single switch state: clicking
-        // one lit every aliased row at once. One flag per pid keeps the address unique
-        // (unordered_map nodes are stable) for the whole session.
-        std::unordered_map< std::uint32_t, bool >& row_flags( )
+        // PID keys keep each row's visual state stable as rows scroll or refresh.
+        std::unordered_map< std::uint32_t, switch_state >& row_states( )
         {
-            static std::unordered_map< std::uint32_t, bool > flags;
-            return flags;
-        }
-
-        bool& row_flag( std::uint32_t pid )
-        {
-            return row_flags( )[ pid ];
+            static std::unordered_map< std::uint32_t, switch_state > states;
+            return states;
         }
 
         // Called from tick() after each refresh: drop state of pids that no longer exist
         // so a reused pid never inherits a stale tick, and the map stays the size of the
         // live list. An empty snapshot leaves the state untouched (nothing is dead yet).
-        void prune_row_flags( )
+        void prune_row_states( )
         {
             const auto& procs = process::list( );
             if ( procs.empty( ) )
                 return;
-            auto& flags = row_flags( );
+            auto& flags = row_states( );
             for ( auto it = flags.begin( ); it != flags.end( ); )
             {
                 bool alive = false;
@@ -254,24 +235,21 @@ namespace ui::pages
             }
         }
 
-        // Honest hover test for the scroll viewport. The runtime's pointer_over ties the
-        // answer to the rect that won the previous frame, which makes a scrollable region
-        // depend on its own last-frame state; this only asks where the mouse is.
-        bool hovered_over( ImVec2 min, ImVec2 max )
-        {
-            const ImVec2 mouse = ImGui::GetIO( ).MousePos;
-            return mouse.x >= min.x && mouse.x < max.x && mouse.y >= min.y && mouse.y < max.y;
-        }
-
         // One row of the panel, laid out from a single top coordinate. Everything is
         // measured, so a short image name and a long one keep the pid and the chip aligned
         // and the chip text stays centred inside its own box.
-        void draw_row( ImDrawList* draw, ImVec2 at, float row_y, const process::entry& item )
+        void draw_row( ImDrawList* draw, ImVec2 at, const process::entry& item, bool selected, bool hovered )
         {
-            const float name_y = row_y + 1.f;
-            // The box occupies at.x + 14 .. +28; the design's own label sits 10px clear of a
-            // 14px box, so the name starts at 14 + 14 + 10 and never touches the checkbox.
-            const float name_left = 38.f;
+            switch_state& state = row_states( )[item.pid];
+            animate_to( state.anim, selected ? 1.f : 0.f, motion_controls );
+            animate_to( state.hover, hovered ? 1.f : 0.f, motion_hover );
+            const ImVec2 box_at = at + ImVec2{ 0.f, 1.f };
+            add_rounded_rect_filled( draw, box_at + ImVec2{ 0.f, 1.f }, box_at + ImVec2{ 14.f, 15.f }, corner_radii{ 4.f }, mix_color( mix_color( theme::fill_blue_2( ), theme::icon_blue( ), state.anim ), theme::fill_blue_3( ), state.hover * ( 1.f - state.anim ) ) );
+            add_rounded_rect_stroke( draw, box_at + ImVec2{ 0.5f, 1.5f }, box_at + ImVec2{ 13.5f, 14.5f }, corner_radii{ 3.5f }, mix_color( theme::accent( ), theme::icon_blue( ), state.anim ), 1.f );
+            draw_icon_glyph( draw, box_at + ImVec2{ 1.5f, 2.5f }, fade( theme::icon, state.anim ), icons::check_glyph );
+
+            const float name_y = 1.f;
+            const float name_left = 24.f;
 
             draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ name_left, name_y }, IM_COL32( 154, 167, 189, 255 ), item.name.c_str( ) );
 
@@ -285,10 +263,7 @@ namespace ui::pages
             const chip_look look = architecture_chip( item.arch );
             const float chip_width = text_width( fonts::manrope_extralight_500_11, arch_text ) + chip_pad_x * 2.f;
             const float chip_x = pid_x + text_width( fonts::manrope_extralight_500_12, pid_text ) + 12.f;
-            // Center on the measured middle of the name glyphs (row_y + ~9.5), not on
-            // the 12px line box: the glyphs sit low inside their box, so centering by
-            // box height alone left the chip ~3px too high (and clipped at the top).
-            const float chip_y = row_y + 1.f;
+            const float chip_y = 1.f;
 
             add_rounded_rect_filled( draw, at + ImVec2{ chip_x, chip_y }, at + ImVec2{ chip_x + chip_width, chip_y + chip_height }, corner_radii{ 4.f }, look.fill );
             add_rounded_rect_stroke( draw, at + ImVec2{ chip_x + 0.5f, chip_y + 0.5f }, at + ImVec2{ chip_x + chip_width - 0.5f, chip_y + chip_height - 0.5f }, corner_radii{ 3.5f }, look.edge, 1.f );
@@ -328,7 +303,7 @@ namespace ui::pages
         refresh_requested = false;
         last_refresh = now;
         ( void )process::refresh( );
-        prune_row_flags( );
+        prune_row_states( );
         vars.process_count = static_cast< int >( process::list( ).size( ) );
 
         // A dead target cannot accept anything: drop the selection right away.
@@ -592,164 +567,59 @@ namespace ui::pages
                 if ( process::matches( item, vars.search_2 ) || process::title_matches( item.pid, vars.search_2 ) )
                     shown.push_back( item );
 
-            const float viewport_top = 177.f;
-            const int row_capacity = static_cast< int >( process_viewport_height / process_row_height );
-            const int row_max = ImMax( 0, static_cast< int >( shown.size( ) ) - row_capacity );
-            list_scroll = ImClamp( list_scroll, 0.f, static_cast< float >( row_max ) );
+            static char previous_search[sizeof( vars.search_2 )] = { };
+            const bool search_changed = std::strcmp( previous_search, vars.search_2 ) != 0;
+            ImStrncpy( previous_search, vars.search_2, sizeof( previous_search ) );
 
-            // ---- scrollbar on the right edge, webpage style -----------------------
-            //
-            // Driven by the raw mouse instead of the runtime's pointer model: the rows
-            // claim the viewport first, so the topmost-rect rule would shadow the bar,
-            // exactly like the wheel gate above. Visible only while the list overflows
-            // the viewport; the thumb height is the visible fraction and its position
-            // is the live scroll, in both directions (wheel or bar movement).
-            const int total_rows = static_cast< int >( shown.size( ) );
-            const bool bar_visible = row_max > 0;
-            if ( !bar_visible )
+            // Use the same native scrolling as the log panel. Native row items
+            // keep scrollbar grabs, row clicks and window dragging independent.
+            ImGui::PushStyleVar( ImGuiStyleVar_ScrollbarSize, 10.f );
+            ImGui::PushStyleVar( ImGuiStyleVar_ScrollbarRounding, 5.f );
+            ImGui::PushStyleColor( ImGuiCol_ScrollbarBg, theme::surface );
+            ImGui::PushStyleColor( ImGuiCol_ScrollbarGrab, theme::surface_3 );
+            ImGui::PushStyleColor( ImGuiCol_ScrollbarGrabHovered, theme::surface_5 );
+            ImGui::PushStyleColor( ImGuiCol_ScrollbarGrabActive, theme::icon_blue( ) );
+            if ( begin_child( "Rows##ProcessList", { 14.f, 177.f }, { 363.f, process_viewport_height }, { 0.f, 0.f }, 0.f,
+                              ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_AlwaysVerticalScrollbar ) )
             {
-                bar_dragging = false;
-                bar_repeat_at = -1.0;
-            }
-            const float bar_x = 383.5f;
-            const float bar_w = 5.f;
-            const float bar_top = viewport_top + 2.f;
-            const float bar_h = process_viewport_height - 4.f;
-            const ImVec2 track_min = at + ImVec2{ bar_x, bar_top };
-            const ImVec2 track_max = at + ImVec2{ bar_x + bar_w, bar_top + bar_h };
-            const ImVec2 grab_min = at + ImVec2{ bar_x - 4.f, bar_top };
-            const ImVec2 grab_max = at + ImVec2{ 391.f, bar_top + bar_h };
-            const float view_ratio = bar_visible ? ImClamp( row_capacity / static_cast< float >( total_rows ), 0.f, 1.f ) : 1.f;
-            const float thumb_h = ImMax( 20.f, view_ratio * bar_h );
-            const float thumb_travel = bar_h - thumb_h;
-            const float thumb_t = bar_visible ? ImSaturate( list_scroll / static_cast< float >( row_max ) ) : 0.f;
-            const ImVec2 thumb_min = at + ImVec2{ bar_x, bar_top + thumb_t * thumb_travel };
-            const ImVec2 thumb_max = at + ImVec2{ bar_x + bar_w, bar_top + thumb_t * thumb_travel + thumb_h };
-            const ImVec2 mouse = ImGui::GetIO( ).MousePos;
-            const bool over_grab = bar_visible && mouse.x >= grab_min.x && mouse.x < grab_max.x && mouse.y >= grab_min.y && mouse.y < grab_max.y;
-            const ImVec2 thumb_grab_min = thumb_min - ImVec2{ 2.f, 2.f };
-            const ImVec2 thumb_grab_max = thumb_max + ImVec2{ 2.f, 2.f };
-            // The thumb is claimed before the track: with nested rects the first
-            // pointer_over of the frame wins, so track_hit turns out to be exactly
-            // "track minus thumb". Claiming here also sets pointer.claimed, which is
-            // what keeps the window-drag machinery from stealing the grab -- a bare
-            // mouse test would leave the column unclaimed and one press would start
-            // moving the whole window along with the thumb.
-            const bool thumb_hit = bar_visible && pointer_over( thumb_grab_min, thumb_grab_max );
-            const bool track_hit = bar_visible && pointer_over( grab_min, grab_max );
-            if ( bar_visible )
-            {
-                if ( bar_dragging )
+                if ( search_changed || shown.empty( ) )
+                    ImGui::SetScrollY( 0.f );
+
+                ImGuiListClipper clipper;
+                clipper.Begin( static_cast< int >( shown.size( ) ), process_row_height );
+                while ( clipper.Step( ) )
                 {
-                    if ( !pointer.down )
-                        bar_dragging = false;
-                    else
+                    for ( int index = clipper.DisplayStart; index < clipper.DisplayEnd; ++index )
                     {
-                        // The thumb center follows the pointer, so the page position is
-                        // smooth while dragging (the rows render the fractional offset).
-                        const float center = ImSaturate( ( mouse.y - track_min.y - thumb_h * 0.5f ) / thumb_travel );
-                        list_scroll = center * static_cast< float >( row_max );
+                        const process::entry& item = shown[index];
+                        const ImVec2 row_at = ImGui::GetCursorScreenPos( );
+                        ImGui::PushID( static_cast< int >( item.pid ) );
+                        if ( ImGui::InvisibleButton( "##SelectProcess", ImVec2{ ImGui::GetContentRegionAvail( ).x, process_row_height } ) )
+                        {
+                            vars.target_pid = item.pid;
+                            ImStrncpy( vars.target_name, item.name.c_str( ), sizeof( vars.target_name ) );
+                            ImStrncpy( vars.target_arch, process::architecture_name( item.arch ), sizeof( vars.target_arch ) );
+                            vars.target_selected = true;
+                        }
+                        const bool hovered = ImGui::IsItemHovered( );
+                        if ( hovered )
+                            ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+                        draw_row( ImGui::GetWindowDrawList( ), row_at, item,
+                                  vars.target_selected && item.pid == vars.target_pid, hovered );
+                        ImGui::PopID( );
                     }
                 }
-                else if ( thumb_hit && pointer.clicked )
-                    bar_dragging = true;
-                else if ( track_hit && pointer.down )
+
+                if ( shown.empty( ) )
                 {
-                    // Track click: page one viewport toward the clicked side, again and
-                    // again while the button stays down (first repeat waits a beat).
-                    const float direction = mouse.y < thumb_min.y + thumb_h * 0.5f ? -1.f : 1.f;
-                    const double now = ImGui::GetTime( );
-                    if ( now >= bar_repeat_at )
-                    {
-                        list_scroll = ImClamp( list_scroll + direction * static_cast< float >( row_capacity ), 0.f, static_cast< float >( row_max ) );
-                        bar_repeat_at = now + ( pointer.clicked ? 0.35 : 0.16 );
-                    }
+                    const char* message = process::list( ).empty( ) ? "No snapshot yet." : "No process matches the search.";
+                    draw_text( ImGui::GetWindowDrawList( ), fonts::manrope_extralight_400_11,
+                               ImGui::GetCursorScreenPos( ) + ImVec2{ 0.f, 5.f }, theme::text_6, message );
                 }
-                animate_to( bar_hover, thumb_hit || bar_dragging ? 1.f : 0.f, motion_hover );
-                if ( thumb_hit || bar_dragging )
-                    ImGui::SetMouseCursor( ImGuiMouseCursor_ResizeNS );
             }
-
-            // The rows answer the pointer while it is over the viewport, so nothing else in
-            // the panel reacts there. The wheel is read straight from ImGui instead of the
-            // runtime's pointer: pointer.hovered is recomputed at the top of every frame
-            // from ImGui's own window-hover state, and claiming the viewport here changes
-            // that state for the next frame, which left hovered permanently false.
-            const bool clipped = pointer.clipped;
-            const ImVec2 clip_min = pointer.clip_min;
-            const ImVec2 clip_max = pointer.clip_max;
-            pointer.clipped = true;
-            pointer.clip_min = at + ImVec2{ 0.f, viewport_top };
-            pointer.clip_max = at + ImVec2{ 391.f, viewport_top + process_viewport_height };
-
-            if ( hovered_over( at + ImVec2{ 0.f, viewport_top }, at + ImVec2{ 391.f, viewport_top + process_viewport_height } ) && !bar_dragging )
-                list_scroll = ImClamp( list_scroll - ImGui::GetIO( ).MouseWheel, 0.f, static_cast< float >( row_max ) );
-
-            const int first = static_cast< int >( list_scroll );
-            const int last = ImMin( static_cast< int >( shown.size( ) ), first + row_capacity + 1 );
-            const float row_origin = viewport_top - ( list_scroll - static_cast< float >( first ) ) * process_row_height;
-
-            // While dragging the bar the scroll position is fractional, so a row can
-            // straddle the viewport edge: clip the drawing to the viewport, the way a
-            // real list does. (Wheel-only scrolling lands on whole rows and never
-            // showed the bleed, which is why the clip was not needed before.)
-            draw->PushClipRect( at + ImVec2{ 0.f, viewport_top }, at + ImVec2{ 391.f, viewport_top + process_viewport_height }, false );
-
-            // While the pointer sits on the scrollbar the rows give up that column, so
-            // grabbing the thumb never ticks a checkbox or paints the row's hand cursor.
-            const float row_hit_w = over_grab ? bar_x : 391.f;
-
-            for ( int index = first; index < last; ++index )
-            {
-                const process::entry& item = shown[index];
-                bool& selected = row_flag( item.pid );
-                selected = vars.target_selected && item.pid == vars.target_pid;
-                const float row_y = row_origin + ( static_cast< float >( index ) - static_cast< float >( first ) ) * process_row_height;
-
-                // item() inside the checkbox snaps the cursor back to the panel margin and
-                // advances Y, so every row has to re-place the cursor before it is laid out.
-                // Without this the second row onward restarts at x=14 and draws the box on
-                // top of the previous name.
-                set_cursor( { 14.f, row_y } );
-
-                // The label is painted by draw_row below, so the box and the tick are drawn
-                // over nothing. The box is pinned to the row start and the hit box covers
-                // the whole cell, so clicking anywhere on the line selects the process.
-                // Both take absolute screen coordinates: `at` is the panel origin, so the
-                // row offsets are added here rather than by set_cursor.
-                if ( checkbox_2( item.name.c_str( ), selected, at + ImVec2{ 0.f, row_y }, ImVec2{ row_hit_w, process_row_height - 1.f }, ImVec2{ at.x + 14.f, at.y + row_y + 1.f } ) )
-                {
-                    vars.target_pid = item.pid;
-                    ImStrncpy( vars.target_name, item.name.c_str( ), sizeof( vars.target_name ) );
-                    ImStrncpy( vars.target_arch, process::architecture_name( item.arch ), sizeof( vars.target_arch ) );
-                    vars.target_selected = true;
-                    selected = true;
-                }
-
-                draw_row( draw, at, row_y, item );
-            }
-            draw->PopClipRect( );
-
-            pointer.clipped = clipped;
-            pointer.clip_min = clip_min;
-            pointer.clip_max = clip_max;
-
-            // Webpage-style scrollbar: a quiet track pinned to the panel's right edge and
-            // a pill thumb whose size is the visible fraction. Its position tracks the
-            // live scroll; the accent blue runs in on hover/drag like the other widgets.
-            if ( bar_visible )
-            {
-                add_rounded_rect_filled( draw, track_min, track_max, corner_radii{ 2.5f }, theme::surface_3 );
-                add_rounded_rect_stroke( draw, track_min + ImVec2{ 0.5f, 0.5f }, track_max - ImVec2{ 0.5f, 0.5f }, corner_radii{ 2.f }, theme::accent_a60( ), 1.f );
-                const ImU32 thumb_col = mix_color( theme::fill_blue_3( ), theme::icon_blue( ), bar_hover );
-                add_rounded_rect_filled( draw, thumb_min, thumb_max, corner_radii{ 2.5f }, thumb_col );
-            }
-
-            if ( shown.empty( ) )
-            {
-                const char* message = process::list( ).empty( ) ? "No snapshot yet." : "No process matches the search.";
-                draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 14.f, 182.f }, theme::text_6, message );
-            }
+            end_child( );
+            ImGui::PopStyleColor( 4 );
+            ImGui::PopStyleVar( 2 );
 
             add_rounded_rect_stroke( draw, at + ImVec2{ 0.5f, 0.5f }, at + ImVec2{ 390.5f, 415.5f }, corner_radii{ 13.5f }, theme::accent( ), 1.f );
         }
