@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="280" viewBox="0 0 1200 280" role="img" aria-labelledby="title description">
+  <title id="title">Injector</title>
+  <desc id="description">Banner azul escuro do Injector, aplicativo nativo para Windows x64 desenvolvido com C++20, Dear ImGui e DirectX 11.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#070e1b"/>
+      <stop offset="1" stop-color="#0b1830"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.2" cy="0.6" r="0.85">
+      <stop stop-color="#1e75fc" stop-opacity="0.17"/>
+      <stop offset="1" stop-color="#1e75fc" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#1e75fc"/>
+      <stop offset="1" stop-color="#52c5ff"/>
+    </linearGradient>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M36 0H0V36" fill="none" stroke="#3c5d89" stroke-opacity="0.12"/>
+    </pattern>
+    <clipPath id="rounded"><rect x="1" y="1" width="1198" height="278" rx="24"/></clipPath>
+  </defs>
+  <g clip-path="url(#rounded)">
+    <rect width="1200" height="280" fill="url(#background)"/>
+    <rect width="1200" height="280" fill="url(#grid)"/>
+    <rect width="1200" height="280" fill="url(#glow)"/>
+    <circle cx="1120" cy="142" r="164" fill="none" stroke="#1e75fc" stroke-opacity="0.13"/>
+    <circle cx="1120" cy="142" r="128" fill="none" stroke="#1e75fc" stroke-opacity="0.18"/>
+    <circle cx="1120" cy="142" r="91" fill="none" stroke="#52c5ff" stroke-opacity="0.14"/>
+    <path d="M846 87h62l30 30h126m-218 76h91l30-30h135" fill="none" stroke="#4a82c5" stroke-opacity="0.26"/>
+    <circle cx="846" cy="87" r="3" fill="#1e75fc"/>
+    <circle cx="846" cy="193" r="3" fill="#52c5ff"/>
+    <path d="m1081 119-20 21 20 21m54-42 20 21-20 21m-25-8 7-26" fill="none" stroke="#65b0ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.75"/>
+    <rect x="64" y="42" width="147" height="25" rx="12.5" fill="#102644" stroke="#244a76"/>
+    <circle cx="79" cy="54.5" r="3" fill="#52c5ff"/>
+    <text x="91" y="59" fill="#a9d3ff" font-family="Segoe UI, sans-serif" font-size="11" font-weight="600" letter-spacing="1.7">WINDOWS / x64</text>
+    <rect x="64" y="99" width="91" height="91" rx="22" fill="#0c1d37" stroke="#25538b"/>
+    <g transform="translate(82 117) scale(1.85)" fill="none" stroke="url(#accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m19 2 9 9m-5-5-5 5m-2-4 7 7M6 24l-4 4m7-12 5 5M17 8 5.5 19.5a3 3 0 0 0 0 4.2l.8.8a3 3 0 0 0 4.2 0L22 13"/>
+    </g>
+    <text x="183" y="158" fill="#eff6ff" font-family="Segoe UI, Arial, sans-serif" font-size="70" font-weight="700" letter-spacing="6">INJECTOR</text>
+    <text x="188" y="194" fill="#91a8c7" font-family="Segoe UI, Arial, sans-serif" font-size="17" letter-spacing="0.4">C++20  /  Dear ImGui  /  DirectX 11</text>
+    <rect x="64" y="236" width="1072" height="1" fill="#263b57"/>
+    <rect x="64" y="236" width="168" height="2" rx="1" fill="url(#accent)"/>
+  </g>
+  <rect x="0.5" y="0.5" width="1199" height="279" rx="24" fill="none" stroke="#203654"/>
+</svg>
