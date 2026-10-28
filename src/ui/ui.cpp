@@ -73,7 +73,12 @@ namespace ui
             draw_image( draw, 0, origin + ImVec2{ -64.f, -85.f }, origin + ImVec2{ 184.f, 125.f } );
             draw_icon_glyph( draw, origin + ImVec2{ 24.f, 23.f }, theme::icon_blue( ), icons::syringe_glyph );
             draw_text( draw, fonts::manrope_extralight_600_15, origin + ImVec2{ 66.f, 19.f }, theme::text, "DLL Injector" );
-            draw_text( draw, fonts::manrope_extralight_500_11, origin + ImVec2{ 66.f, 40.f }, theme::text_5, "Simple. Fast. Reli…" );
+            draw_text( draw, fonts::manrope_extralight_500_11, origin + ImVec2{ 66.f, 40.f }, theme::text_5, "Developed by" );
+            const ImVec2 credit_at = origin + ImVec2{ 66.f, 56.f };
+            const ImVec2 credit_size{ text_width( fonts::manrope_extralight_600_12, "Erick" ) + 16.f, 20.f };
+            add_rounded_rect_filled( draw, credit_at, credit_at + credit_size, corner_radii{ 6.f }, theme::surface_2 );
+            add_rounded_rect_stroke( draw, credit_at + ImVec2{ .5f, .5f }, credit_at + credit_size - ImVec2{ .5f, .5f }, corner_radii{ 5.5f }, theme::accent( ), 1.f );
+            draw_text( draw, fonts::manrope_extralight_600_12, credit_at + ImVec2{ 8.f, 2.f }, theme::icon_blue( ), "Erick" );
             add_rounded_rect_filled( draw, origin + ImVec2{ 10.f, 88.f + nav_main.slide }, origin + ImVec2{ 174.f, 126.f + nav_main.slide }, corner_radii{ 12.f }, theme::surface_2 );
             draw_icon_glyph( draw, origin + ImVec2{ 24.f, 99.f }, mix_color( theme::icon_muted, theme::icon_blue( ), nav_main.amount[0] ), icons::syringe_2_glyph );
             draw_text( draw, fonts::manrope_extralight_400_13, origin + ImVec2{ 52.f, 98.f }, mix_color( theme::icon_muted, theme::text, nav_main.amount[0] ), "Injector" );

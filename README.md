@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="#compilar"><img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20%C2%B7%20x64-0078D4?style=flat-square&amp;labelColor=111827" alt="Windows 10 e 11, x64" /></a>
+  <a href="#compilar"><img src="https://img.shields.io/badge/Windows-10%20x64-0078D4?style=flat-square&amp;labelColor=111827" alt="Windows 10 x64, validado na build 19045" /></a>
   <a href="CMakeLists.txt"><img src="https://img.shields.io/badge/C%2B%2B-20-00599C?style=flat-square&amp;logo=cplusplus&amp;logoColor=white&amp;labelColor=111827" alt="C++20" /></a>
   <a href="vendor/imgui"><img src="https://img.shields.io/badge/Dear%20ImGui-1.92.7-1E75FC?style=flat-square&amp;labelColor=111827" alt="Dear ImGui 1.92.7" /></a>
   <a href="CMakeLists.txt"><img src="https://img.shields.io/badge/DirectX-11-76B900?style=flat-square&amp;labelColor=111827" alt="DirectX 11" /></a>
@@ -33,7 +33,9 @@
 - LoadLibrary, Manual Map e Thread Hijack.
 - Lista de processos com nome, PID, arquitetura, pesquisa e atualização manual.
 - Logs com horário, cores por severidade, quebra de linha e rolagem.
-- Delay e nova tentativa automática configuráveis.
+- Delay configurável. Retry automático bloqueado após resultado indeterminado.
+- Inspeção dos módulos carregados e validação PE antes da execução.
+- Restauração automática das configurações ao abrir.
 - Opacidade, cores e animações ajustáveis.
 - Notificações, sons opcionais e gravação de logs em arquivo.
 
@@ -67,7 +69,7 @@ Dear ImGui está incluído em [`vendor/imgui`](vendor/imgui). Fontes, ícones e 
 
 ### Requisitos
 
-- **Windows 10 ou 11**.
+- **Windows 10 x64** (testado na build 19045). Windows 11 ainda não foi validado.
 - **Visual Studio 2022 ou mais recente**, com a carga de trabalho **Desenvolvimento para desktop com C++** e o Windows SDK.
 - **CMake 3.20+** para compilar pelo CMake.
 
@@ -132,11 +134,13 @@ Injector/
 │   ├── main.cpp          # Inicialização e loop da aplicação
 │   ├── process.*         # Enumeração e consulta dos processos
 │   ├── inject.*          # Métodos de carregamento, estado e logs
+│   ├── core/             # Validação PE, módulos, perfis, backends e logs
 │   ├── ui/               # Páginas, widgets, tema e recursos embutidos
 │   └── injector/         # Janela, renderização e efeitos visuais
 ├── assets/               # Fontes, ícones e imagens
-├── vendor/imgui/         # Dear ImGui e backends utilizados
-├── tests/injtest.dll     # DLL x64 para validação local
+├── vendor/               # Dear ImGui e HandleGuard do Blackbone
+├── tests/                # DLL de teste, fixtures e regressões do domínio
+├── docs/                 # Arquitetura, migração e resultados dos testes
 └── preview.png           # Captura da interface
 ```
 
@@ -188,6 +192,28 @@ cmake --build build/cmake-tests --config Release
 Essas compilações aceitam `INJECTOR_CAPTURE` e `INJECTOR_CAPTURE_SCRIPT`.
 
 </details>
+
+## Configurações e operações
+
+As configurações são salvas automaticamente ao fechar o programa e restauradas ao abrir. Elas e o log ficam em `%LOCALAPPDATA%/Injector/`. PIDs não são persistidos: selecione o processo a cada sessão.
+
+**Modules** lista nome, base, tamanho e caminho dos módulos do loader. Imagens carregadas por Manual Map não aparecem nessa lista. **Cancel** cancela uma operação ainda não executada ou encerra a espera local quando a execução já começou.
+
+Um timeout após início da execução tem resultado **Indeterminate**. A DLL pode terminar de carregar depois. O programa mantém os buffers ainda em uso no alvo e bloqueia retry automático.
+
+Manual Map suporta DLLs nativas x64 com imports, relocations e tabelas de unwind. TLS, delay imports, load configuration, CLR e resolução completa de API sets/SxS não estão implementados. Thread Hijack foi testado no processo de teste incluído; AVX/XSTATE e processos com CET não foram validados. Consulte o [relatório de compatibilidade e testes](docs/refactoring.md).
+
+## Testes
+
+Os testes são opcionais e usam processos criados pelo próprio harness:
+
+```powershell
+cmake -S . -B build/tests -G "Visual Studio 17 2022" -A x64 -DINJECTOR_BUILD_TESTS=ON
+cmake --build build/tests --config Release
+ctest --test-dir build/tests -C Release --output-on-failure
+```
+
+A análise do Xenos, as decisões de integração e os resultados ficam em [docs/refactoring.md](docs/refactoring.md). Os componentes adaptados de Xenos/Blackbone e suas licenças estão em [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 <a id="contato"></a>
 

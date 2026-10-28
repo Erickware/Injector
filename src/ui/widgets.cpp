@@ -92,6 +92,61 @@ namespace ui::widgets
         }
     }
 
+    scrollbar_style::scrollbar_style( )
+    {
+        ImGui::PushStyleVar( ImGuiStyleVar_ScrollbarSize, 10.f );
+        ImGui::PushStyleVar( ImGuiStyleVar_ScrollbarRounding, 5.f );
+        ImGui::PushStyleColor( ImGuiCol_ScrollbarBg, theme::surface );
+        ImGui::PushStyleColor( ImGuiCol_ScrollbarGrab, theme::surface_3 );
+        ImGui::PushStyleColor( ImGuiCol_ScrollbarGrabHovered, theme::surface_5 );
+        ImGui::PushStyleColor( ImGuiCol_ScrollbarGrabActive, theme::icon_blue( ) );
+    }
+
+    scrollbar_style::~scrollbar_style( )
+    {
+        ImGui::PopStyleColor( 4 );
+        ImGui::PopStyleVar( 2 );
+    }
+
+    bool action_button( const char* label, ImVec2 size, const char* icon, bool enabled )
+    {
+        ImGui::BeginDisabled( !enabled );
+        const ImVec2 at = ImGui::GetCursorScreenPos( );
+        button_state& state = button_for( label );
+        const bool clicked = ImGui::InvisibleButton( label, size );
+        const bool hovered = ImGui::IsItemHovered( );
+        animate_to( state.hover, hovered ? 1.f : 0.f, motion_hover );
+        animate_to( state.press, ImGui::IsItemActive( ) ? 1.f : 0.f, motion_press );
+        if ( hovered ) ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        ImDrawList* draw = ImGui::GetWindowDrawList( );
+        const float alpha = enabled ? 1.f : ImGui::GetStyle( ).DisabledAlpha;
+        add_rounded_rect_filled( draw, at, at + size, corner_radii{ 10.f }, fade( mix_color( mix_color( theme::surface_2, theme::surface_3, state.hover ), theme::surface_4, state.press ), alpha ) );
+        add_rounded_rect_stroke( draw, at + ImVec2{ .5f, .5f }, at + size - ImVec2{ .5f, .5f }, corner_radii{ 9.5f }, fade( theme::accent( ), alpha ), 1.f );
+        const float text_w = text_width( fonts::manrope_extralight_600_12, label );
+        const float content_w = text_w + ( icon ? 24.f : 0.f );
+        const float left = ( size.x - content_w ) * .5f;
+        if ( icon ) draw_icon_glyph( draw, at + ImVec2{ left, ( size.y - 16.f ) * .5f }, fade( theme::text, alpha ), icon );
+        draw_text( draw, fonts::manrope_extralight_600_12, at + ImVec2{ left + ( icon ? 24.f : 0.f ), ( size.y - 16.f ) * .5f }, fade( theme::text, alpha ), label );
+        ImGui::EndDisabled( );
+        return clicked;
+    }
+
+    bool close_button( const char* id )
+    {
+        const ImVec2 at = ImGui::GetCursorScreenPos( );
+        const bool clicked = ImGui::InvisibleButton( id, { 32.f, 32.f } );
+        button_state& state = button_for( id );
+        const bool hovered = ImGui::IsItemHovered( );
+        animate_to( state.hover, hovered ? 1.f : 0.f, motion_hover );
+        if ( hovered ) ImGui::SetMouseCursor( ImGuiMouseCursor_Hand );
+        ImDrawList* draw = ImGui::GetWindowDrawList( );
+        add_rounded_rect_filled( draw, at, at + ImVec2{ 32.f, 32.f }, corner_radii{ 10.f }, mix_color( theme::surface_2, theme::surface_3, state.hover ) );
+        const ImU32 color = mix_color( theme::text_5, theme::text, state.hover );
+        draw->AddLine( at + ImVec2{ 11.f, 11.f }, at + ImVec2{ 21.f, 21.f }, color, 1.4f );
+        draw->AddLine( at + ImVec2{ 21.f, 11.f }, at + ImVec2{ 11.f, 21.f }, color, 1.4f );
+        return clicked;
+    }
+
     bool search_box( const char* label, char* value, std::size_t size )
     {
         ImDrawList* draw = ImGui::GetWindowDrawList( );

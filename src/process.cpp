@@ -2,6 +2,9 @@
 // *Toolhelp32 enumeration + per-process architecture probe for the Process List panel*
 
 #include "process.hpp"
+#include "core/win32.hpp"
+#include <condition_variable>
+#include <thread>
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -28,11 +31,16 @@ namespace process
         std::vector< entry > g_list;
         std::mutex g_mutex;
         std::uint64_t g_last_refresh_ms = 0;
+        std::string g_error;
 
         // Title lookup is the expensive half of the search, so it is rebuilt with the
         // list and only consulted for rows the cheap name/pid pass did not match.
         std::unordered_map< std::uint32_t, std::string > g_titles;
-        std::uint64_t g_title_generation = 0;
+        std::mutex refresh_lock;
+        std::mutex request_lock;
+        std::condition_variable request_cv;
+        bool requested = false;
+        std::jthread refresh_worker;
 
         bool ascii_contains_ci( const char* haystack, const char* needle )
         {
@@ -72,29 +80,33 @@ namespace process
             if ( known != architecture::unknown || path.empty( ) )
                 return known;
 
-            HANDLE file = ::CreateFileW( path.c_str( ), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, nullptr );
-            if ( file == INVALID_HANDLE_VALUE )
+            win::handle file( ::CreateFileW( path.c_str( ), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, nullptr ) );
+            if ( !file )
                 return architecture::unknown;
 
-            IMAGE_DOS_HEADER dos{ };
-            IMAGE_NT_HEADERS32 nt32{ };
+            IMAGE_DOS_HEADER dos{};
+            LARGE_INTEGER file_size{};
             DWORD read = 0;
             architecture result = architecture::unknown;
-
-            if ( ::ReadFile( file, &dos, sizeof( dos ), &read, nullptr ) && read == sizeof( dos ) && dos.e_magic == IMAGE_DOS_SIGNATURE &&
-                 ::SetFilePointer( file, dos.e_lfanew, nullptr, FILE_BEGIN ) != INVALID_SET_FILE_POINTER &&
-                 ::ReadFile( file, &nt32, sizeof( nt32 ), &read, nullptr ) && read >= 6 && nt32.Signature == IMAGE_NT_SIGNATURE )
+            if ( !GetFileSizeEx( file, &file_size ) || file_size.QuadPart < sizeof( dos ) ||
+                 !ReadFile( file, &dos, sizeof( dos ), &read, nullptr ) || read != sizeof( dos ) ||
+                 dos.e_magic != IMAGE_DOS_SIGNATURE || dos.e_lfanew < sizeof( dos ) ||
+                 dos.e_lfanew > file_size.QuadPart - sizeof( DWORD ) - sizeof( IMAGE_FILE_HEADER ) ) return result;
+            LARGE_INTEGER offset{}; offset.QuadPart = dos.e_lfanew;
+            DWORD signature = 0; IMAGE_FILE_HEADER header{};
+            if ( SetFilePointerEx( file, offset, nullptr, FILE_BEGIN ) &&
+                 ReadFile( file, &signature, sizeof( signature ), &read, nullptr ) && read == sizeof( signature ) && signature == IMAGE_NT_SIGNATURE &&
+                 ReadFile( file, &header, sizeof( header ), &read, nullptr ) && read == sizeof( header ) )
             {
-                switch ( nt32.FileHeader.Machine )
+                switch ( header.Machine )
                 {
-                case IMAGE_FILE_MACHINE_I386:  result = architecture::x86;   break;
-                case IMAGE_FILE_MACHINE_AMD64: result = architecture::x64;   break;
+                case IMAGE_FILE_MACHINE_I386: result = architecture::x86; break;
+                case IMAGE_FILE_MACHINE_AMD64: result = architecture::x64; break;
                 case IMAGE_FILE_MACHINE_ARM64: result = architecture::arm64; break;
                 default: break;
                 }
             }
-            ::CloseHandle( file );
             return result;
         }
 
@@ -144,7 +156,7 @@ namespace process
         {
             // Only proves elevation when the token opens and reports a high integrity
             // level; a failure to query is reported as "not proven", never as "no".
-            HANDLE token = nullptr;
+            win::handle token;
             if ( !::OpenProcessToken( handle, TOKEN_QUERY, &token ) )
                 return false;
 
@@ -153,25 +165,15 @@ namespace process
             TOKEN_ELEVATION elevation{ };
             if ( ::GetTokenInformation( token, TokenElevation, &elevation, sizeof( elevation ), &returned ) )
                 elevated = elevation.TokenIsElevated != 0;
-            ::CloseHandle( token );
-            return elevated;
-        }
 
-        std::uint32_t count_threads( const PROCESSENTRY32W& record )
-        {
-            return record.cntThreads;
+            return elevated;
         }
 
         std::string wide_to_utf8( const wchar_t* wide, int length )
         {
             if ( !wide || length <= 0 )
                 return { };
-            const int bytes = ::WideCharToMultiByte( CP_UTF8, 0, wide, length, nullptr, 0, nullptr, nullptr );
-            if ( bytes <= 0 )
-                return { };
-            std::string utf8( static_cast< std::size_t >( bytes ), '\0' );
-            ::WideCharToMultiByte( CP_UTF8, 0, wide, length, utf8.data( ), bytes, nullptr, nullptr );
-            return utf8;
+            return win::utf8( std::wstring_view( wide, static_cast<std::size_t>( length ) ) );
         }
 
         BOOL CALLBACK collect_title( HWND window, LPARAM parameter )
@@ -224,9 +226,14 @@ namespace process
 
     bool refresh( )
     {
-        HANDLE snapshot = ::CreateToolhelp32Snapshot( TH32CS_SNAPPROCESS, 0 );
-        if ( snapshot == INVALID_HANDLE_VALUE )
+        std::lock_guard serial( refresh_lock );
+        win::handle snapshot( ::CreateToolhelp32Snapshot( TH32CS_SNAPPROCESS, 0 ) );
+        if ( !snapshot )
+        {
+            const auto error = win::failure( "Snapshot processes" );
+            std::lock_guard guard( g_mutex ); g_error = error.message;
             return false;
+        }
 
         PROCESSENTRY32W record{ };
         record.dwSize = sizeof( record );
@@ -242,32 +249,22 @@ namespace process
                 item.name = image_name( record.szExeFile );
                 item.pid = record.th32ProcessID;
                 item.parent_pid = record.th32ParentProcessID;
-                item.threads = count_threads( record );
+                item.threads = record.cntThreads;
                 item.system = record.th32ProcessID == 0 || record.th32ProcessID == 4;
 
                 if ( item.pid != 0 )
                 {
-                    HANDLE handle = ::OpenProcess( PROCESS_QUERY_LIMITED_INFORMATION, FALSE, item.pid );
+                    win::handle handle( ::OpenProcess( PROCESS_QUERY_LIMITED_INFORMATION, FALSE, item.pid ) );
                     if ( handle )
                     {
                         item.arch = probe_architecture( handle );
                         item.elevated = probe_elevation( handle );
-                        ::CloseHandle( handle );
-                    }
-                }
-
-                if ( item.arch == architecture::unknown )
-                {
-                    // Denied handle (elevated or protected target) or a process with no
-                    // readable image: resolve the executable path and read its PE header.
-                    wchar_t path[1024]{ };
-                    DWORD length = static_cast< DWORD >( std::size( path ) );
-                    HANDLE query = ::OpenProcess( PROCESS_QUERY_LIMITED_INFORMATION, FALSE, item.pid );
-                    if ( query )
-                    {
-                        if ( ::QueryFullProcessImageNameW( query, 0, path, &length ) )
-                            item.arch = architecture_from_image( std::wstring( path, length ), item.arch );
-                        ::CloseHandle( query );
+                        item.creation_time = creation_time( handle );
+                        wchar_t full_path[32768]{ };
+                        DWORD path_length = 32768;
+                        if ( QueryFullProcessImageNameW( handle, 0, full_path, &path_length ) ) item.path = win::utf8( std::wstring_view( full_path, path_length ) );
+                        if ( item.arch == architecture::unknown && !item.path.empty( ) )
+                            item.arch = architecture_from_image( win::wide( item.path ), item.arch );
                     }
                 }
 
@@ -275,10 +272,13 @@ namespace process
             } while ( ::Process32NextW( snapshot, &record ) );
         }
 
-        ::CloseHandle( snapshot );
-
-        if ( collected.empty( ) )
+        const DWORD enumeration_error = GetLastError( );
+        if ( collected.empty( ) || enumeration_error != ERROR_NO_MORE_FILES )
+        {
+            const auto error = win::failure( "Enumerate processes", enumeration_error );
+            std::lock_guard guard( g_mutex ); g_error = error.message;
             return false;
+        }
 
         std::sort( collected.begin( ), collected.end( ),
             []( const entry& left, const entry& right )
@@ -294,21 +294,63 @@ namespace process
 
         {
             std::lock_guard< std::mutex > lock( g_mutex );
+            g_error.clear( );
             g_list = std::move( collected );
             g_titles = std::move( titles );
             g_last_refresh_ms = ::GetTickCount64( );
-            ++g_title_generation;
         }
         return true;
     }
 
-    const std::vector< entry >& list( )
+    std::vector< entry > list( )
     {
+        std::lock_guard guard( g_mutex );
         return g_list;
+    }
+
+    std::string last_error( ) { std::lock_guard guard( g_mutex ); return g_error; }
+
+    architecture query_architecture( HANDLE handle ) { return probe_architecture( handle ); }
+
+    std::uint64_t creation_time( HANDLE handle )
+    {
+        FILETIME created{}, exited{}, kernel{}, user{};
+        if ( !GetProcessTimes( handle, &created, &exited, &kernel, &user ) ) return 0;
+        return ( std::uint64_t( created.dwHighDateTime ) << 32 ) | created.dwLowDateTime;
+    }
+
+    void request_refresh( )
+    {
+        std::lock_guard guard( request_lock );
+        if ( !refresh_worker.joinable( ) ) refresh_worker = std::jthread( []( std::stop_token stop )
+        {
+            std::stop_callback notify( stop, [] { request_cv.notify_all( ); } );
+            for ( ;; )
+            {
+                std::unique_lock guard( request_lock );
+                request_cv.wait( guard, [&] { return stop.stop_requested( ) || requested; } );
+                if ( stop.stop_requested( ) ) return;
+                requested = false;
+                guard.unlock( );
+                try { refresh( ); }
+                catch ( const std::exception& error ) { std::lock_guard error_guard( g_mutex ); g_error = error.what( ); }
+                catch ( ... ) { std::lock_guard error_guard( g_mutex ); g_error = "Process refresh failed"; }
+            }
+        } );
+        requested = true;
+        request_cv.notify_one( );
+    }
+
+    void shutdown( )
+    {
+        { std::lock_guard guard( request_lock ); refresh_worker.request_stop( ); }
+        request_cv.notify_all( );
+        if ( refresh_worker.joinable( ) ) refresh_worker.join( );
     }
 
     std::uint64_t last_refresh_ms( )
     {
+        std::lock_guard guard( g_mutex );
         return g_last_refresh_ms;
     }
 

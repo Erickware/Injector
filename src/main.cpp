@@ -2,6 +2,8 @@
 #include "injector/window.hpp"
 
 #include "ui/ui.hpp"
+#include "inject.hpp"
+#include "process.hpp"
 
 #include <cstdlib>
 
@@ -23,6 +25,7 @@ int WINAPI WinMain( HINSTANCE instance, HINSTANCE, LPSTR, int )
     }
     injector::app = { host.window( ), host.device( ), host.device_context( ), host.swap_chain( ) };
 
+    ui::load_settings( );
     ( void )ui::load_fonts( );
 
     host.show( SW_SHOW );
@@ -32,5 +35,8 @@ int WINAPI WinMain( HINSTANCE instance, HINSTANCE, LPSTR, int )
         ui::render( );
         host.end_frame( );
     }
+    inject::shutdown( );
+    process::shutdown( );
+    ui::save_settings( );
     return EXIT_SUCCESS;
 }

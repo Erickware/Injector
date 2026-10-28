@@ -1,15 +1,15 @@
 #pragma once
 
-// Real injection engine: classic LoadLibrary, thread hijack and manual map,
-// with a live log the Injection Log panel renders. Nothing here is simulated:
-// every entry is produced by an actual Win32 call while an injection runs.
+// Asynchronous loading service, operation state and diagnostic snapshots.
 
 #include <cstddef>
 #include <vector>
+#include <cstdint>
+#include <string>
 
 namespace inject
 {
-    // Indexes inside method_items[3] on the Settings page.
+    // Stable values used by profiles and the UI.
     enum class method : int
     {
         load_library = 0,
@@ -29,7 +29,7 @@ namespace inject
     {
         int level = 0;
         char time[16] = { };      // "HH:MM:SS", local clock
-        char text[320] = { };
+        char text[2048] = { };
     };
 
     // Everything the Injector page hands over when Inject is pressed.
@@ -38,15 +38,16 @@ namespace inject
         method how = method::load_library;
         unsigned int pid = 0;
         char name[128] = { };       // target name, only for log lines
-        bool target_x64 = false;
-        char dll_path[256] = { };
+        std::uint64_t target_creation_time = 0;
+        char dll_path[32768] = { };
         int delay_ms = 0;
+        unsigned int timeout_ms = 15000;
         bool auto_retry = false;
         bool verbose = false;
         bool sound_effects = false;
     };
 
-    // Set by every finished run; the UI polls the epoch to fire toasts.
+    // Completion counter for notification consumers.
     struct completion
     {
         unsigned int epoch = 0;     // increments once per finished run
@@ -55,6 +56,22 @@ namespace inject
 
     bool running( );
     bool start( const options& o ); // false while another run is in flight
+    void cancel( );
+    void shutdown( );
+
+    enum class phase { idle, validating, delay, executing, succeeded, failed, cancelled, indeterminate };
+    struct operation
+    {
+        unsigned int id = 0;
+        unsigned int pid = 0;
+        method how = method::load_library;
+        phase state = phase::idle;
+        std::uint32_t error_code = 0;
+        std::uint64_t elapsed_ms = 0;
+        std::string message;
+    };
+    operation current_operation( );
+    const char* phase_name( phase state );
 
     std::vector< entry > snapshot( );
     void clear_log( );
@@ -62,11 +79,11 @@ namespace inject
     // Live settings from the Settings page's Logging section.
     void configure_file_log( bool enabled, int retention_days );
 
-    // System Status values (always real, never hand-written):
+    // Legacy status adapter:
     //   0 = Ready, 1 = Working..., 2 = Failed
     int status( );
     bool dll_loaded( );             // last run loaded the DLL into the target
     completion last_completion( );  // toast source
-    const char* last_target( );     // target name from the last run
-    const char* last_dll( );        // dll base name from the last run
+    std::string last_target( );
+    std::string last_dll( );
 }

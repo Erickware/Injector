@@ -1,0 +1,5 @@
+cmake_minimum_required( VERSION 3.20 )
+project( InjectorFixtures LANGUAGES CXX )
+add_executable( InjectorTestTarget target.cpp )
+target_compile_definitions( InjectorTestTarget PRIVATE UNICODE _UNICODE )
+set_property( TARGET InjectorTestTarget PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" )

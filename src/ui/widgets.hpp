@@ -10,6 +10,16 @@
 
 namespace ui::widgets
 {
+    // Existing button styling with flexible sizing and native input ownership.
+    bool action_button( const char* label, ImVec2 size, const char* icon = nullptr, bool enabled = true );
+    bool close_button( const char* id );
+    struct scrollbar_style
+    {
+        scrollbar_style( );
+        ~scrollbar_style( );
+        scrollbar_style( const scrollbar_style& ) = delete;
+        scrollbar_style& operator=( const scrollbar_style& ) = delete;
+    };
     bool search_box( const char* label, char* value, std::size_t size );
     bool combo( const char* label, int& value, const char* const* items, int count );
     bool input_text( char* value, std::size_t size, const char* text );

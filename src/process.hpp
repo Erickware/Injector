@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <windows.h>
 
 namespace process
 {
@@ -26,6 +27,8 @@ namespace process
         architecture arch = architecture::unknown;
         bool elevated = false;               // best-effort; true only when proven
         bool system = false;                 // pid 0/4 or session 0 style protected process
+        std::uint64_t creation_time = 0;      // distinguishes PID reuse
+        std::string path;
     };
 
     // Rebuilds the list from a fresh CreateToolhelp32Snapshot. Safe to call on a timer.
@@ -33,7 +36,12 @@ namespace process
     // so the panel never blanks out on a transient failure.
     bool refresh( );
 
-    const std::vector< entry >& list( );
+    std::vector< entry > list( );
+    void request_refresh( );
+    void shutdown( );
+    std::string last_error( );
+    architecture query_architecture( HANDLE handle );
+    std::uint64_t creation_time( HANDLE handle );
 
     // Milliseconds since the process started at the last successful refresh.
     std::uint64_t last_refresh_ms( );

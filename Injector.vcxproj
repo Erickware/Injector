@@ -47,13 +47,17 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;NOMINMAX;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;d3dcompiler.lib;dxgi.lib;dwmapi.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <HighEntropyVA>true</HighEntropyVA>
+      <AdditionalDependencies>d3d11.lib;d3dcompiler.lib;dxgi.lib;dwmapi.lib;windowscodecs.lib;advapi32.lib;shell32.lib;ole32.lib;user32.lib;comdlg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -68,6 +72,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;NOMINMAX;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -76,7 +81,10 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;d3dcompiler.lib;dxgi.lib;dwmapi.lib;windowscodecs.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <DataExecutionPrevention>true</DataExecutionPrevention>
+      <HighEntropyVA>true</HighEntropyVA>
+      <AdditionalDependencies>d3d11.lib;d3dcompiler.lib;dxgi.lib;dwmapi.lib;windowscodecs.lib;advapi32.lib;shell32.lib;ole32.lib;user32.lib;comdlg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(EnableTestHarness)'=='true'">
@@ -88,6 +96,12 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\process.cpp" />
     <ClCompile Include="src\inject.cpp" />
+    <ClCompile Include="src\core\diagnostics.cpp" />
+    <ClCompile Include="src\core\loaders.cpp" />
+    <ClCompile Include="src\core\modules.cpp" />
+    <ClCompile Include="src\core\pe_image.cpp" />
+    <ClCompile Include="src\core\profile.cpp" />
+
     <ClCompile Include="src\injector\runtime.cpp" />
     <ClCompile Include="src\injector\blur.cpp" />
     <ClCompile Include="src\injector\image.cpp" />
@@ -102,6 +116,13 @@
     <ClInclude Include="src\injector\injector.hpp" />
     <ClInclude Include="src\process.hpp" />
     <ClInclude Include="src\inject.hpp" />
+    <ClInclude Include="src\core\diagnostics.hpp" />
+    <ClInclude Include="src\core\loaders.hpp" />
+    <ClInclude Include="src\core\modules.hpp" />
+    <ClInclude Include="src\core\pe_image.hpp" />
+    <ClInclude Include="src\core\profile.hpp" />
+    <ClInclude Include="src\core\win32.hpp" />
+
     <ClInclude Include="src\injector\window.hpp" />
     <ClInclude Include="src\injector\runtime.hpp" />
     <ClInclude Include="src\injector\blur.hpp" />
@@ -118,6 +139,7 @@
   </ItemGroup>
   <!-- <figma-generated-project-items> -->
   <ItemGroup>
+    <ClInclude Include="src\ui\file_dialog.hpp" />
     <ClInclude Include="src\ui\ui.hpp" />
     <ClInclude Include="src\ui\pages.hpp" />
     <ClInclude Include="src\ui\widgets.hpp" />
@@ -126,6 +148,8 @@
     <ClInclude Include="src\ui\fonts.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ui\settings.cpp" />
+    <ClCompile Include="src\ui\file_dialog.cpp" />
     <ClCompile Include="src\ui\ui.cpp" />
     <ClCompile Include="src\ui\pages.cpp" />
     <ClCompile Include="src\ui\widgets.cpp" />

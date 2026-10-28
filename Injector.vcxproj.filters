@@ -16,6 +16,7 @@
     <Filter Include="vendor\imgui">
       <UniqueIdentifier>{8A2D5E1F-4B7C-4E9A-B3D6-0C8F2A1E7D42}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\core" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -137,4 +138,22 @@
     </ClCompile>
   </ItemGroup>
 <!-- </figma-generated-filter-items> -->
+  <ItemGroup>
+    <ClCompile Include="src\core\diagnostics.cpp"><Filter>src\core</Filter></ClCompile>
+    <ClCompile Include="src\core\loaders.cpp"><Filter>src\core</Filter></ClCompile>
+    <ClCompile Include="src\core\modules.cpp"><Filter>src\core</Filter></ClCompile>
+    <ClCompile Include="src\core\pe_image.cpp"><Filter>src\core</Filter></ClCompile>
+    <ClCompile Include="src\core\profile.cpp"><Filter>src\core</Filter></ClCompile>
+    <ClInclude Include="src\core\diagnostics.hpp"><Filter>src\core</Filter></ClInclude>
+    <ClInclude Include="src\core\loaders.hpp"><Filter>src\core</Filter></ClInclude>
+    <ClInclude Include="src\core\modules.hpp"><Filter>src\core</Filter></ClInclude>
+    <ClInclude Include="src\core\pe_image.hpp"><Filter>src\core</Filter></ClInclude>
+    <ClInclude Include="src\core\profile.hpp"><Filter>src\core</Filter></ClInclude>
+    <ClInclude Include="src\core\win32.hpp"><Filter>src\core</Filter></ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\ui\settings.cpp"><Filter>src\ui</Filter></ClCompile>
+    <ClCompile Include="src\ui\file_dialog.cpp"><Filter>src\ui</Filter></ClCompile>
+    <ClInclude Include="src\ui\file_dialog.hpp"><Filter>src\ui</Filter></ClInclude>
+  </ItemGroup>
 </Project>

@@ -7,6 +7,12 @@
 
 #include "process.hpp"
 #include "inject.hpp"
+#include "file_dialog.hpp"
+#include "core/modules.hpp"
+#include "core/pe_image.hpp"
+#include "core/diagnostics.hpp"
+#include <future>
+#include <cfloat>
 
 #include <algorithm>
 #include <cstddef>
@@ -38,30 +44,34 @@ namespace ui::pages
         double last_refresh = -1.0;
         bool refresh_requested = true;
 
-        // Modal Win32 picker behind the Browse button. The app window owns the dialog
-        // so it stays on top of the injector; OFN_NOCHANGEDIR keeps our working
-        // directory from following the user's shell folder. Cancelling leaves the
-        // current path untouched, and a path that cannot fit is never half-copied.
+        std::string file_feedback;
+        modules::snapshot module_snapshot;
+        std::future<modules::snapshot> module_query;
+        unsigned int inspected_pid = 0;
+        std::string inspected_name;
+        std::uint64_t inspected_creation_time = 0;
+        bool show_modules = false;
+
+        void refresh_modules( )
+        {
+            if ( module_query.valid( ) ) return;
+            const DWORD pid = inspected_pid;
+            const auto created = inspected_creation_time;
+            module_query = std::async( std::launch::async, [pid, created] { return modules::inspect( pid, created ); } );
+        }
+
         void browse_for_dll( char* value, std::size_t size )
         {
-            wchar_t file[ MAX_PATH * 2 ] = { };
-            OPENFILENAMEW ofn { };
-            ofn.lStructSize = sizeof( ofn );
-            ofn.hwndOwner = ::injector::app.window;
-            ofn.lpstrFile = file;
-            ofn.nMaxFile = IM_ARRAYSIZE( file );
-            ofn.lpstrFilter = L"DLL files (*.dll)\0*.dll\0All files (*.*)\0*.*\0\0";
-            ofn.nFilterIndex = 1;
-            ofn.lpstrTitle = L"Select a DLL to inject";
-            ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR | OFN_HIDEREADONLY;
-
-            if ( !GetOpenFileNameW( &ofn ) )
-                return;
-
-            const int required = WideCharToMultiByte( CP_UTF8, 0, file, -1, nullptr, 0, nullptr, nullptr );
-            if ( required <= 0 || static_cast< std::size_t >( required ) > size )
-                return;
-            WideCharToMultiByte( CP_UTF8, 0, file, -1, value, static_cast< int >( size ), nullptr, nullptr );
+            const auto path = choose_file( ::injector::app.window, false, L"DLL files (*.dll)\0*.dll\0\0", L"Select DLL", L"dll" );
+            if ( !path ) return;
+            std::vector<std::uint8_t> bytes;
+            pe::image image;
+            auto error = pe::read( *path, bytes, image );
+            if ( !error && !image.is_dll ) error = { ERROR_BAD_EXE_FORMAT, "The selected PE is not a DLL" };
+            if ( error ) { file_feedback = error.message; inject::detail::log( inject::error, "%s", error.message.c_str( ) ); return; }
+            if ( path->size( ) >= size ) { file_feedback = "DLL path is too long"; return; }
+            ImStrncpy( value, path->c_str( ), size );
+            file_feedback = std::string( "DLL: " ) + process::architecture_name( image.arch ) + ( image.managed ? " (managed; unsupported)" : " (native)" );
         }
 
         // ---- injection notifications -------------------------------------------
@@ -97,7 +107,7 @@ namespace ui::pages
                 if ( !prefs.injection_alerts )
                     return;
                 ImFormatString( message, IM_ARRAYSIZE( message ), "'%s' is now loaded in %s.",
-                                inject::last_dll( ), inject::last_target( ) );
+                                inject::last_dll( ).c_str( ), inject::last_target( ).c_str( ) );
                 push_notification( notifications, 0, "Injection Complete", message, 5.f );
             }
             else
@@ -106,7 +116,10 @@ namespace ui::pages
                     return;
                 ImFormatString( message, IM_ARRAYSIZE( message ),
                                 "See the Injection Log for the failing step." );
-                push_notification( notifications, 1, "Injection Failed", message, 7.f );
+                const auto state = inject::current_operation( ).state;
+                const char* title = state == inject::phase::indeterminate ? "Result Unknown" : state == inject::phase::cancelled ? "Operation Cancelled" : "Injection Failed";
+                if ( state == inject::phase::indeterminate ) ImFormatString( message, IM_ARRAYSIZE( message ), "The DLL may still be initializing. See the log." );
+                push_notification( notifications, 1, title, message, 7.f );
             }
         }
 
@@ -269,6 +282,113 @@ namespace ui::pages
             add_rounded_rect_stroke( draw, at + ImVec2{ chip_x + 0.5f, chip_y + 0.5f }, at + ImVec2{ chip_x + chip_width - 0.5f, chip_y + chip_height - 0.5f }, corner_radii{ 3.5f }, look.edge, 1.f );
             draw_text( draw, fonts::manrope_extralight_500_11, at + ImVec2{ chip_x + chip_pad_x, chip_y + ( chip_height - chip_font_height ) * 0.5f }, look.text, arch_text );
         }
+        float wrapped_height( int slot, const std::string& text, float width )
+        {
+            ImFont* font = slot_font( slot );
+            if ( !font ) font = ImGui::GetFont( );
+            return font->CalcTextSizeA( slot_font_size( slot ), FLT_MAX, width, text.c_str( ) ).y;
+        }
+
+        void module_row( const modules::entry& module )
+        {
+            ImDrawList* draw = ImGui::GetWindowDrawList( );
+            const ImVec2 at = ImGui::GetCursorScreenPos( );
+            const float width = ImGui::GetContentRegionAvail( ).x - 4.f;
+            char size_text[32]{};
+            if ( module.size >= 1024u * 1024u ) ImFormatString( size_text, IM_ARRAYSIZE( size_text ), "%.1f MiB", module.size / 1048576.0 );
+            else if ( module.size >= 1024u ) ImFormatString( size_text, IM_ARRAYSIZE( size_text ), "%.1f KiB", module.size / 1024.0 );
+            else ImFormatString( size_text, IM_ARRAYSIZE( size_text ), "%u B", module.size );
+            const float name_width = width - 150.f;
+            const float name_height = wrapped_height( fonts::manrope_extralight_600_12, module.name, name_width );
+            const float path_height = wrapped_height( fonts::manrope_extralight_400_11, module.path, width - 28.f );
+            const float path_y = 18.f + name_height + 24.f;
+            const float height = path_y + path_height + 14.f;
+            add_rounded_rect_filled( draw, at, at + ImVec2{ width, height }, corner_radii{ 10.f }, theme::surface_2 );
+            add_rounded_rect_stroke( draw, at + ImVec2{ .5f, .5f }, at + ImVec2{ width - .5f, height - .5f }, corner_radii{ 9.5f }, theme::accent_a60( ), 1.f );
+            draw_icon_glyph( draw, at + ImVec2{ 14.f, 15.f }, theme::icon_blue( ), icons::code_glyph );
+            draw->AddText( slot_font( fonts::manrope_extralight_600_12 ), slot_font_size( fonts::manrope_extralight_600_12 ), at + ImVec2{ 40.f, 14.f }, theme::text, module.name.c_str( ), nullptr, name_width );
+            add_rounded_rect_filled( draw, at + ImVec2{ width - 94.f, 12.f }, at + ImVec2{ width - 14.f, 34.f }, corner_radii{ 6.f }, theme::surface );
+            draw_text( draw, fonts::manrope_extralight_500_11, at + ImVec2{ width - 54.f, 16.f }, theme::text_5, size_text, align_center );
+            char address[64]{};
+            ImFormatString( address, IM_ARRAYSIZE( address ), "BASE  0x%llX", static_cast<unsigned long long>( module.base ) );
+            draw_text( draw, fonts::manrope_extralight_500_11, at + ImVec2{ 40.f, 19.f + name_height }, theme::text_5, address );
+            draw->AddText( slot_font( fonts::manrope_extralight_400_11 ), slot_font_size( fonts::manrope_extralight_400_11 ), at + ImVec2{ 14.f, path_y }, theme::text_faint, module.path.c_str( ), nullptr, width - 28.f );
+            ImGui::Dummy( { width, height + 8.f } );
+        }
+
+        void draw_module_panel( )
+        {
+            if ( !show_modules ) return;
+            const ImVec2 size{ 700.f, 584.f };
+            ImGui::SetNextWindowPos( ImGui::GetMainViewport( )->GetCenter( ), ImGuiCond_Always, { .5f, .5f } );
+            ImGui::SetNextWindowSize( size );
+            ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, { 0.f, 0.f } );
+            ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.f );
+            ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 18.f );
+            ImGui::PushStyleColor( ImGuiCol_ModalWindowDimBg, ImVec4{ 0.f, 0.f, 0.f, .65f } );
+            const auto flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground;
+            if ( ImGui::BeginPopupModal( "Loaded modules", nullptr, flags ) )
+            {
+                pointer.popup_open = true;
+                pointer.claimed = true;
+                const ImVec2 at = ImGui::GetWindowPos( );
+                ImDrawList* draw = ImGui::GetWindowDrawList( );
+                add_rounded_rect_filled( draw, at, at + size, corner_radii{ 18.f }, theme::surface );
+                add_rounded_rect_stroke( draw, at + ImVec2{ .5f, .5f }, at + size - ImVec2{ .5f, .5f }, corner_radii{ 17.5f }, theme::accent( ), 1.f );
+                draw_icon_glyph( draw, at + ImVec2{ 22.f, 24.f }, theme::icon_blue( ), icons::list_glyph );
+                draw_text( draw, fonts::manrope_extralight_500_18, at + ImVec2{ 54.f, 18.f }, theme::text, "Loaded Modules" );
+                const auto subtitle = inspected_name + "  /  PID " + std::to_string( inspected_pid );
+                draw_text( draw, fonts::manrope_extralight_400_12, at + ImVec2{ 54.f, 46.f }, theme::text_5, subtitle.c_str( ) );
+                ImGui::SetCursorPos( { 648.f, 18.f } );
+                bool close = close_button( "##CloseModulePanel" ) || ImGui::IsKeyPressed( ImGuiKey_Escape );
+                char count[48]{};
+                ImFormatString( count, IM_ARRAYSIZE( count ), "%zu modules", module_snapshot.items.size( ) );
+                const float count_width = text_width( fonts::manrope_extralight_500_11, count ) + 22.f;
+                add_rounded_rect_filled( draw, at + ImVec2{ 20.f, 78.f }, at + ImVec2{ 20.f + count_width, 102.f }, corner_radii{ 7.f }, theme::fill_blue( ) );
+                draw_text( draw, fonts::manrope_extralight_500_11, at + ImVec2{ 31.f, 83.f }, theme::text_muted, count );
+                if ( module_query.valid( ) ) draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 32.f + count_width, 83.f }, theme::text_5, "Reading modules..." );
+                ImGui::SetCursorPos( { 548.f, 72.f } );
+                if ( action_button( "Refresh", { 132.f, 32.f }, icons::refresh_cw_glyph, !module_query.valid( ) ) ) refresh_modules( );
+                draw->AddLine( at + ImVec2{ 20.f, 112.f }, at + ImVec2{ 680.f, 112.f }, theme::accent_a94( ) );
+                {
+                    scrollbar_style scroll_style;
+                    ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, { 0.f, 0.f } );
+                    ImGui::SetCursorPos( { 20.f, 124.f } );
+                    if ( ImGui::BeginChild( "ModuleRows", { 660.f, 378.f }, ImGuiChildFlags_None, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_AlwaysVerticalScrollbar ) )
+                    {
+                        if ( ImGui::IsWindowAppearing( ) ) ImGui::SetScrollY( 0.f );
+                        if ( module_snapshot.failure )
+                        {
+                            ImFont* font = slot_font( fonts::manrope_extralight_400_12 );
+                            ImGui::PushFont( font, slot_font_size( fonts::manrope_extralight_400_12 ) );
+                            ImGui::PushStyleColor( ImGuiCol_Text, theme::text_muted );
+                            ImGui::TextWrapped( "%s", module_snapshot.failure.message.c_str( ) );
+                            ImGui::PopStyleColor( );
+                            ImGui::PopFont( );
+                            ImGui::Dummy( { 0.f, 8.f } );
+                        }
+                        for ( const auto& module : module_snapshot.items ) module_row( module );
+                        if ( module_snapshot.items.empty( ) && !module_snapshot.failure )
+                        {
+                            draw_text( ImGui::GetWindowDrawList( ), fonts::manrope_extralight_400_12, ImGui::GetCursorScreenPos( ) + ImVec2{ 12.f, 16.f }, theme::text_5,
+                                module_query.valid( ) ? "Reading modules..." : "No loader modules found." );
+                        }
+                    }
+                    ImGui::EndChild( );
+                    ImGui::PopStyleVar( );
+                }
+                draw->AddLine( at + ImVec2{ 20.f, 518.f }, at + ImVec2{ 680.f, 518.f }, theme::accent_a94( ) );
+                draw_icon_glyph( draw, at + ImVec2{ 20.f, 543.f }, theme::icon_muted, icons::info_glyph );
+                draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 44.f, 544.f }, theme::text_5, "Manual Map modules are not listed here." );
+                ImGui::SetCursorPos( { 580.f, 534.f } );
+                close |= action_button( "Close", { 100.f, 32.f } );
+                if ( close ) { show_modules = false; ImGui::CloseCurrentPopup( ); }
+                ImGui::EndPopup( );
+            }
+            ImGui::PopStyleColor( );
+            ImGui::PopStyleVar( 3 );
+        }
     }
 
     // Called from ui::render before the frame is built, so the panel never blocks a frame.
@@ -280,30 +400,31 @@ namespace ui::pages
 
         const double now = ImGui::GetTime( );
 
-        bool needs_refresh = process::list( ).empty( );
-        if ( !needs_refresh && !refresh_requested && !vars.list_live )
-            return;
-        if ( !needs_refresh && !refresh_requested && now - last_refresh < process_refresh_interval )
-            return;
-
-        refresh_requested = false;
-        last_refresh = now;
-        ( void )process::refresh( );
-        prune_row_states( );
-        vars.process_count = static_cast< int >( process::list( ).size( ) );
-
-        // A dead target cannot accept anything: drop the selection right away.
+        if ( module_query.valid( ) && module_query.wait_for( std::chrono::seconds( 0 ) ) == std::future_status::ready )
+        {
+            try { module_snapshot = module_query.get( ); }
+            catch ( const std::exception& e ) { module_snapshot.failure = { ERROR_UNHANDLED_EXCEPTION, e.what( ) }; }
+        }
+        if ( refresh_requested || ( vars.list_live && now - last_refresh >= process_refresh_interval ) )
+        {
+            refresh_requested = false;
+            last_refresh = now;
+            process::request_refresh( );
+        }
+        const auto snapshot = process::list( );
+        static std::string previous_error;
+        const auto process_error = process::last_error( );
+        if ( process_error != previous_error && !process_error.empty( ) ) inject::detail::log( inject::warn, "%s", process_error.c_str( ) );
+        previous_error = process_error;
+        vars.process_count = static_cast<int>( snapshot.size( ) );
+        static std::uint64_t published = 0;
+        const auto updated = process::last_refresh_ms( );
+        if ( updated != published ) { published = updated; prune_row_states( ); }
         if ( vars.target_selected )
         {
-            bool alive = false;
-            for ( const process::entry& p : process::list( ) )
-                if ( p.pid == vars.target_pid )
-                {
-                    alive = true;
-                    break;
-                }
-            if ( !alive )
-                vars.target_selected = false;
+            const auto found = std::find_if( snapshot.begin( ), snapshot.end( ), []( const auto& item )
+            { return item.pid == vars.target_pid && item.creation_time == vars.target_creation_time; } );
+            if ( found == snapshot.end( ) ) vars.target_selected = false;
         }
     }
 
@@ -404,7 +525,7 @@ namespace ui::pages
                 o.how = static_cast< inject::method >( ImClamp( vars.method, 0, 2 ) );
                 o.pid = vars.target_selected ? vars.target_pid : 0;
                 ImStrncpy( o.name, vars.target_name, sizeof o.name );
-                o.target_x64 = vars.target_selected && std::strcmp( vars.target_arch, "x64" ) == 0;
+                o.target_creation_time = vars.target_creation_time;
                 ImStrncpy( o.dll_path, vars.dll_path, sizeof o.dll_path );
                 o.delay_ms = static_cast< int >( vars.injection_delay );
                 o.auto_retry = prefs.auto_retry;
@@ -429,18 +550,20 @@ namespace ui::pages
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 40.f }, at + ImVec2{ 271.f, 41.f }, corner_radii{ }, theme::accent_a94( ) );
             draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 14.f, 52.f }, theme::text_muted, "Status" );
             draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 256.6855f, 52.f }, theme::text_5,
-                       inject::running( ) ? "Injecting..." : inject::status( ) == 2 ? "Failed" : "Ready", align_right );
+                       inject::phase_name( inject::current_operation( ).state ), align_right );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 79.f }, at + ImVec2{ 271.f, 80.f }, corner_radii{ }, theme::accent_a94( ) );
             draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 14.f, 91.f }, theme::text_muted, "DLL" );
             draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 257.3385f, 91.f },
                        inject::dll_loaded( ) ? theme::icon_blue( ) : theme::text_5,
-                       inject::dll_loaded( ) ? "Loaded" : "Not Loaded", align_right );
+                       inject::current_operation( ).state == inject::phase::indeterminate ? "Unknown" : inject::dll_loaded( ) ? "Loaded" : "Not Loaded", align_right );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 118.f }, at + ImVec2{ 271.f, 119.f }, corner_radii{ }, theme::accent_a94( ) );
             draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 14.f, 130.f }, theme::text_muted, "Target" );
             {
                 char target_label[128];
-                if ( vars.target_selected )
-                    ellipsize_left( fonts::manrope_extralight_400_11, vars.target_name, 150.f, target_label, sizeof target_label );
+                const auto operation = inject::current_operation( );
+                const auto target = operation.id ? inject::last_target( ) : std::string( vars.target_selected ? vars.target_name : "Not Selected" );
+                if ( operation.id || vars.target_selected )
+                    ellipsize_left( fonts::manrope_extralight_400_11, target.c_str( ), 150.f, target_label, sizeof target_label );
                 else
                     ImFormatString( target_label, IM_ARRAYSIZE( target_label ), "Not Selected" );
                 draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 257.0715f, 130.f }, theme::text_5, target_label, align_right );
@@ -448,7 +571,7 @@ namespace ui::pages
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 157.f }, at + ImVec2{ 271.f, 158.f }, corner_radii{ }, theme::accent_a94( ) );
             draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 14.f, 169.f }, theme::text_muted, "Method" );
             draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 256.9985f, 169.f }, theme::text_5,
-                       method_items[ ImClamp( vars.method, 0, 2 ) ], align_right );
+                       method_items[ ImClamp( inject::current_operation( ).id ? static_cast<int>( inject::current_operation( ).how ) : vars.method, 0, 2 ) ], align_right );
             add_rounded_rect_stroke( draw, at + ImVec2{ 0.5f, 0.5f }, at + ImVec2{ 270.5f, 201.5f }, corner_radii{ 13.5f }, theme::accent( ), 1.f );
         }
         end_child( );
@@ -464,12 +587,7 @@ namespace ui::pages
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 40.f }, at + ImVec2{ 271.f, 41.f }, corner_radii{ }, theme::accent_a94( ) );
             // Wrap full messages and let the viewport scroll through the entire
             // snapshot. The footer stays outside it so Clear Log remains visible.
-            ImGui::PushStyleVar( ImGuiStyleVar_ScrollbarSize, 10.f );
-            ImGui::PushStyleVar( ImGuiStyleVar_ScrollbarRounding, 5.f );
-            ImGui::PushStyleColor( ImGuiCol_ScrollbarBg, theme::surface );
-            ImGui::PushStyleColor( ImGuiCol_ScrollbarGrab, theme::surface_3 );
-            ImGui::PushStyleColor( ImGuiCol_ScrollbarGrabHovered, theme::surface_5 );
-            ImGui::PushStyleColor( ImGuiCol_ScrollbarGrabActive, theme::icon_blue( ) );
+            scrollbar_style scroll_style;
             ImGui::PushStyleColor( ImGuiCol_Separator, theme::accent_a94( ) );
             ImFont* log_font = slot_font( fonts::manrope_extralight_400_11 );
             if ( log_font )
@@ -510,8 +628,7 @@ namespace ui::pages
             end_child( );
             if ( log_font )
                 ImGui::PopFont( );
-            ImGui::PopStyleColor( 5 );
-            ImGui::PopStyleVar( 2 );
+            ImGui::PopStyleColor( );
             set_cursor( { 14.f, 383.f } );
             if ( button_4( "Clear Log" ) )
                 inject::clear_log( );
@@ -553,12 +670,7 @@ namespace ui::pages
 
             // Use the same native scrolling as the log panel. Native row items
             // keep scrollbar grabs, row clicks and window dragging independent.
-            ImGui::PushStyleVar( ImGuiStyleVar_ScrollbarSize, 10.f );
-            ImGui::PushStyleVar( ImGuiStyleVar_ScrollbarRounding, 5.f );
-            ImGui::PushStyleColor( ImGuiCol_ScrollbarBg, theme::surface );
-            ImGui::PushStyleColor( ImGuiCol_ScrollbarGrab, theme::surface_3 );
-            ImGui::PushStyleColor( ImGuiCol_ScrollbarGrabHovered, theme::surface_5 );
-            ImGui::PushStyleColor( ImGuiCol_ScrollbarGrabActive, theme::icon_blue( ) );
+            scrollbar_style scroll_style;
             if ( begin_child( "Rows##ProcessList", { 14.f, 177.f }, { 363.f, process_viewport_height }, { 0.f, 0.f }, 0.f,
                               ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_AlwaysVerticalScrollbar ) )
             {
@@ -577,6 +689,7 @@ namespace ui::pages
                         if ( ImGui::InvisibleButton( "##SelectProcess", ImVec2{ ImGui::GetContentRegionAvail( ).x, process_row_height } ) )
                         {
                             vars.target_pid = item.pid;
+                            vars.target_creation_time = item.creation_time;
                             ImStrncpy( vars.target_name, item.name.c_str( ), sizeof( vars.target_name ) );
                             ImStrncpy( vars.target_arch, process::architecture_name( item.arch ), sizeof( vars.target_arch ) );
                             vars.target_selected = true;
@@ -598,10 +711,31 @@ namespace ui::pages
                 }
             }
             end_child( );
-            ImGui::PopStyleColor( 4 );
-            ImGui::PopStyleVar( 2 );
+
 
             add_rounded_rect_stroke( draw, at + ImVec2{ 0.5f, 0.5f }, at + ImVec2{ 390.5f, 415.5f }, corner_radii{ 13.5f }, theme::accent( ), 1.f );
+        }
+        end_child( );
+        if ( begin_child( "Operation controls", { 204.f, 740.f }, { 676.f, 55.f } ) )
+        {
+            if ( action_button( "Modules", { 116.f, 32.f }, icons::list_glyph, vars.target_selected && !module_query.valid( ) ) )
+            {
+                inspected_pid = vars.target_pid;
+                inspected_name = vars.target_name;
+                inspected_creation_time = vars.target_creation_time;
+                module_snapshot = {};
+                show_modules = true;
+                refresh_modules( );
+                ImGui::OpenPopup( "Loaded modules" );
+            }
+            ImGui::SameLine( 0.f, 8.f );
+            if ( action_button( "Cancel", { 88.f, 32.f }, nullptr, inject::running( ) ) ) inject::cancel( );
+            const auto operation = inject::current_operation( );
+            char status_text[128]{};
+            ImFormatString( status_text, IM_ARRAYSIZE( status_text ), "#%u  /  PID %u  /  %s  /  %.2fs", operation.id, operation.pid, inject::phase_name( operation.state ), operation.elapsed_ms / 1000.0 );
+            draw_text( ImGui::GetWindowDrawList( ), fonts::manrope_extralight_400_11, section_pos( ) + ImVec2{ 228.f, 9.f }, theme::text_5, status_text );
+            if ( !file_feedback.empty( ) ) draw_text( ImGui::GetWindowDrawList( ), fonts::manrope_extralight_400_11, section_pos( ) + ImVec2{ 0.f, 38.f }, theme::text_5, file_feedback.c_str( ) );
+            draw_module_panel( );
         }
         end_child( );
     }
@@ -664,7 +798,7 @@ namespace ui::pages
             draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 38.f, 12.f }, theme::text_muted, "Appearance" );
             draw_icon_glyph( draw, at + ImVec2{ 243.f, 12.f }, theme::icon_muted, icons::chevron_up_glyph );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 40.f }, at + ImVec2{ 271.f, 41.f }, corner_radii{ }, theme::accent_a94( ) );
-            slider_3( "Window Opacity", vars.window_opacity, 0.f, 100.f, "%.0f%%" );
+            slider_3( "Window Opacity", vars.window_opacity, 12.f, 100.f, "%.0f%%" );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 97.f }, at + ImVec2{ 271.f, 98.f }, corner_radii{ }, theme::accent_a94( ) );
             set_cursor( { 14.f, 109.f } );
             toggle( "Enable Animations", prefs.enable_animations );
@@ -695,6 +829,7 @@ namespace ui::pages
             add_rounded_rect_stroke( draw, at + ImVec2{ 0.5f, 0.5f }, at + ImVec2{ 390.5f, 184.5f }, corner_radii{ 13.5f }, theme::accent( ), 1.f );
         }
         end_child( );
+
     }
 
     void about( )
@@ -777,19 +912,20 @@ namespace ui::pages
         }
         end_child( );
 
-        if ( begin_child( "Credits & Links", { 204.f, 508.f }, { 676.f, 281.f }, { 14.f, 127.f }, 21.f ) )
+        if ( begin_child( "Developer & Project", { 204.f, 508.f }, { 676.f, 281.f }, { 14.f, 127.f }, 21.f ) )
         {
             ImDrawList* draw = ImGui::GetWindowDrawList( );
             const ImVec2 at = section_pos( );
             add_rounded_rect_filled( draw, at, at + ImVec2{ 676.f, 281.f }, corner_radii{ 14.f }, theme::surface );
             draw_icon_glyph( draw, at + ImVec2{ 14.f, 12.f }, theme::icon_blue( ), icons::heart_glyph );
-            draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 38.f, 12.f }, theme::text_muted, "Credits & Links" );
+            draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 38.f, 12.f }, theme::text_muted, "Developer & Project" );
             draw_icon_glyph( draw, at + ImVec2{ 648.f, 12.f }, theme::icon_muted, icons::chevron_up_glyph );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 40.f }, at + ImVec2{ 676.f, 41.f }, corner_radii{ }, theme::accent_a94( ) );
             draw_text( draw, fonts::manrope_extralight_400_12, at + ImVec2{ 14.f, 52.f }, theme::text_5, "Developed By" );
             draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 661.864f, 52.f }, theme::text_muted, "I am That I Am", align_right );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 79.f }, at + ImVec2{ 676.f, 80.f }, corner_radii{ }, theme::accent_a94( ) );
-            draw_text( draw, fonts::manrope_extralight_400_11, at + ImVec2{ 14.f, 90.f }, theme::text_5, "Thanks to the open-source Dear ImGui community." );
+            draw_text( draw, fonts::manrope_extralight_400_12, at + ImVec2{ 14.f, 91.f }, theme::text_5, "Project Type" );
+            draw_text( draw, fonts::manrope_extralight_500_12, at + ImVec2{ 662.f, 91.f }, theme::text_muted, "Advanced DLL Injection Framework", align_right );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 116.f }, at + ImVec2{ 676.f, 117.f }, corner_radii{ }, theme::accent_a94( ) );
             button_5( "My Discord: .0x764", icons::discord_glyph );
             add_rounded_rect_filled( draw, at + ImVec2{ 0.f, 169.f }, at + ImVec2{ 676.f, 170.f }, corner_radii{ }, theme::accent_a94( ) );
